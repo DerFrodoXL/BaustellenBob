@@ -1,0 +1,14 @@
+﻿<MudNavMenu>
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
+        Dashboard
+    </MudNavLink>
+    <MudNavLink Href="/projects" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Construction">
+        Baustellen
+    </MudNavLink>
+    <AuthorizeView Roles="Admin">
+        <MudNavLink Href="/employees" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.People">
+            Mitarbeiter
+        </MudNavLink>
+    </AuthorizeView>
+</MudNavMenu>
+

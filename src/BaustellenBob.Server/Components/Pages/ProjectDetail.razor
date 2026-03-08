@@ -1,0 +1,287 @@
+@page "/projects/{Id:guid}"
+@attribute [Authorize]
+
+<PageTitle>@(_project?.Name ?? "Baustelle")</PageTitle>
+
+@if (_project is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudText Typo="Typo.h4" Class="mb-2">@_project.Name</MudText>
+    <MudText Typo="Typo.subtitle1" Class="mb-4 mud-text-secondary">@_project.Customer — @_project.Address</MudText>
+
+    <MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true" Class="mb-4">
+        <MudTabPanel Text="Übersicht" Icon="@Icons.Material.Filled.Info">
+            <div class="pa-4">
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.body1"><strong>Status:</strong>
+                            <MudChip T="string" Size="Size.Small">@_project.Status</MudChip>
+                        </MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.body1"><strong>Start:</strong> @_project.StartDate.ToShortDateString()</MudText>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.body1"><strong>Beschreibung:</strong></MudText>
+                        <MudText Typo="Typo.body2">@_project.Description</MudText>
+                    </MudItem>
+                </MudGrid>
+
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-4"
+                           OnClick="EditProject" StartIcon="@Icons.Material.Filled.Edit">
+                    Bearbeiten
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Class="mt-4 ml-2"
+                           Href="@($"/api/projects/{Id}/report")" Target="_blank"
+                           StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                           Disabled="@(!_canExportPdf)">
+                    @(_canExportPdf ? "PDF Bericht" : "PDF Bericht (ab Starter)")
+                </MudButton>
+            </div>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@($"Fotos ({_photos.Count})")" Icon="@Icons.Material.Filled.PhotoCamera">
+            <div class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Foto hochladen</MudText>
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <InputFile OnChange="OnPhotoSelected" accept="image/*" capture="environment" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField T="string" @bind-Value="_photoDescription" Label="Beschreibung" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                   OnClick="UploadPhoto" Disabled="@(_selectedFile is null || _uploading)"
+                                   StartIcon="@Icons.Material.Filled.Upload">
+                            @if (_uploading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" /> }
+                            else { <text>Hochladen</text> }
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="my-4" />
+
+                @if (_photos.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch keine Fotos vorhanden.</MudText>
+                }
+                else
+                {
+                    <MudGrid>
+                        @foreach (var photo in _photos)
+                        {
+                            <MudItem xs="12" sm="6" md="4">
+                                <MudCard>
+                                    <MudCardMedia Image="@($"/uploads/{photo.FilePath}")" Height="200" />
+                                    <MudCardContent>
+                                        <MudText Typo="Typo.body2">@photo.Description</MudText>
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                            @photo.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm") — @photo.UploadedByName
+                                        </MudText>
+                                    </MudCardContent>
+                                    <MudCardActions>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Download"
+                                                       Href="@($"/uploads/{photo.FilePath}")"
+                                                       Target="_blank"
+                                                       aria-label="Download" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                       Color="Color.Error"
+                                                       OnClick="@(() => DeletePhoto(photo))"
+                                                       aria-label="Löschen" />
+                                    </MudCardActions>
+                                </MudCard>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                }
+            </div>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@($"Rapporte ({_reports.Count})")" Icon="@Icons.Material.Filled.Assignment">
+            <div class="pa-4">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mb-4"
+                           OnClick="OpenReportDialog" StartIcon="@Icons.Material.Filled.Add">
+                    Neuer Rapport
+                </MudButton>
+
+                @if (_reports.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch keine Rapporte vorhanden.</MudText>
+                }
+                else
+                {
+                    <MudTable Items="_reports" Hover="true" Dense="true" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Datum</MudTh>
+                            <MudTh>Mitarbeiter</MudTh>
+                            <MudTh>Stunden</MudTh>
+                            <MudTh>Tätigkeit</MudTh>
+                            <MudTh>Material</MudTh>
+                            <MudTh>Aktionen</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Datum">@context.ReportDate.ToShortDateString()</MudTd>
+                            <MudTd DataLabel="Mitarbeiter">@context.UserName</MudTd>
+                            <MudTd DataLabel="Stunden">@context.Hours h</MudTd>
+                            <MudTd DataLabel="Tätigkeit">@context.Activity</MudTd>
+                            <MudTd DataLabel="Material">@context.Material</MudTd>
+                            <MudTd>
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                               OnClick="@(() => EditReport(context))" aria-label="Bearbeiten" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                               OnClick="@(() => DeleteReport(context))" aria-label="Löschen" />
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </div>
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    [Inject] private IProjectService ProjectService { get; set; } = null!;
+    [Inject] private IPhotoService PhotoService { get; set; } = null!;
+    [Inject] private IWorkReportService WorkReportService { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private ITierLimitService TierLimitService { get; set; } = null!;
+
+    private ProjectDto? _project;
+    private List<PhotoDto> _photos = new();
+    private List<WorkReportDto> _reports = new();
+    private bool _canExportPdf;
+
+    // Photo upload state
+    private IBrowserFile? _selectedFile;
+    private string _photoDescription = string.Empty;
+    private bool _uploading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAll();
+        _canExportPdf = await TierLimitService.CanExportPdfAsync();
+    }
+
+    private async Task LoadAll()
+    {
+        _project = await ProjectService.GetByIdAsync(Id);
+        _photos = await PhotoService.GetByProjectAsync(Id);
+        _reports = await WorkReportService.GetByProjectAsync(Id);
+    }
+
+    private void OnPhotoSelected(InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+    }
+
+    private async Task UploadPhoto()
+    {
+        if (_selectedFile is null) return;
+        _uploading = true;
+        try
+        {
+            using var stream = _selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            await PhotoService.UploadAsync(Id, _selectedFile.Name, stream, _photoDescription, null, null);
+            Snackbar.Add("Foto hochgeladen", Severity.Success);
+            _photoDescription = string.Empty;
+            _selectedFile = null;
+            _photos = await PhotoService.GetByProjectAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Fehler: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _uploading = false;
+        }
+    }
+
+    private async Task EditProject()
+    {
+        var parameters = new DialogParameters<ProjectDialog>
+        {
+            { x => x.Existing, _project }
+        };
+        var dialog = await DialogService.ShowAsync<ProjectDialog>("Baustelle bearbeiten", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            _project = await ProjectService.GetByIdAsync(Id);
+        }
+    }
+
+    private async Task DeletePhoto(PhotoDto photo)
+    {
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
+            "Foto löschen",
+            $"Foto wirklich löschen?",
+            yesText: "Löschen", cancelText: "Abbrechen");
+        if (confirmed == true)
+        {
+            try
+            {
+                await PhotoService.DeleteAsync(photo.Id);
+                _photos = await PhotoService.GetByProjectAsync(Id);
+                Snackbar.Add("Foto gelöscht", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Fehler: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenReportDialog()
+    {
+        var dialog = await DialogService.ShowAsync<WorkReportDialog>("Neuer Rapport",
+            new DialogParameters<WorkReportDialog> { { x => x.ProjectId, Id } });
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            _reports = await WorkReportService.GetByProjectAsync(Id);
+        }
+    }
+
+    private async Task EditReport(WorkReportDto report)
+    {
+        var parameters = new DialogParameters<WorkReportDialog>
+        {
+            { x => x.ProjectId, Id },
+            { x => x.Existing, report }
+        };
+        var dialog = await DialogService.ShowAsync<WorkReportDialog>("Rapport bearbeiten", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            _reports = await WorkReportService.GetByProjectAsync(Id);
+        }
+    }
+
+    private async Task DeleteReport(WorkReportDto report)
+    {
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
+            "Rapport löschen",
+            $"Rapport vom {report.ReportDate:dd.MM.yyyy} wirklich löschen?",
+            yesText: "Löschen", cancelText: "Abbrechen");
+        if (confirmed == true)
+        {
+            try
+            {
+                await WorkReportService.DeleteAsync(report.Id);
+                _reports = await WorkReportService.GetByProjectAsync(Id);
+                Snackbar.Add("Rapport gelöscht", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Fehler: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

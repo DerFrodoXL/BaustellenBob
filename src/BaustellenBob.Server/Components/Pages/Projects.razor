@@ -1,0 +1,119 @@
+@page "/projects"
+@attribute [Authorize]
+
+<PageTitle>Baustellen</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Baustellen</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+           OnClick="OpenCreateDialog" Class="mb-4">
+    Neue Baustelle
+</MudButton>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    @* Desktop: Table *@
+    <MudHidden Breakpoint="Breakpoint.SmAndDown">
+        <MudTable Items="_projects" Hover="true" Dense="true" Striped="true">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Kunde</MudTh>
+                <MudTh>Adresse</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Aktionen</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">@context.Name</MudTd>
+                <MudTd DataLabel="Kunde">@context.Customer</MudTd>
+                <MudTd DataLabel="Adresse">@context.Address</MudTd>
+                <MudTd DataLabel="Status">
+                    <MudChip T="string" Color="@GetStatusColor(context.Status)" Size="Size.Small">
+                        @context.Status
+                    </MudChip>
+                </MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Href="@($"/projects/{context.Id}")" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Archive" Color="Color.Warning"
+                                   OnClick="@(() => Archive(context.Id))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudHidden>
+
+    @* Mobile: Cards *@
+    <MudHidden Breakpoint="Breakpoint.MdAndUp">
+        <MudGrid>
+            @foreach (var b in _projects)
+            {
+                <MudItem xs="12">
+                    <MudCard>
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6">@b.Name</MudText>
+                            <MudText Typo="Typo.body2">@b.Customer</MudText>
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">@b.Address</MudText>
+                            <MudChip T="string" Color="@GetStatusColor(b.Status)" Size="Size.Small" Class="mt-2">
+                                @b.Status
+                            </MudChip>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton Href="@($"/projects/{b.Id}")" Variant="Variant.Text" Color="Color.Primary">
+                                Details
+                            </MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    </MudHidden>
+}
+
+@code {
+    [Inject] private IProjectService ProjectService { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private List<ProjectDto> _projects = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        _projects = await ProjectService.GetAllAsync();
+        _loading = false;
+    }
+
+    private async Task Archive(Guid id)
+    {
+        await ProjectService.ArchiveAsync(id);
+        Snackbar.Add("Baustelle archiviert", Severity.Success);
+        await LoadData();
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var dialog = await DialogService.ShowAsync<ProjectDialog>("Neue Baustelle");
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+
+    private static Color GetStatusColor(ProjectStatus status) => status switch
+    {
+        ProjectStatus.Active => Color.Success,
+        ProjectStatus.Paused => Color.Warning,
+        ProjectStatus.Completed => Color.Info,
+        ProjectStatus.Archived => Color.Default,
+        _ => Color.Default
+    };
+}

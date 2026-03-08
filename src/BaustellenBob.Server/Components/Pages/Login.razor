@@ -1,0 +1,58 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@layout BaustellenBob.Server.Components.Layout.EmptyLayout
+
+<PageTitle>BaustellenBob - Login</PageTitle>
+
+<div style="display:flex; justify-content:center; align-items:center; min-height:100vh;">
+    <MudCard Style="width:400px; max-width:95vw;">
+        <MudCardHeader>
+            <MudText Typo="Typo.h5" Align="Align.Center" Style="width:100%">
+                BaustellenBob
+            </MudText>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (_error)
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-3">E-Mail oder Passwort falsch.</MudAlert>
+            }
+            <form method="post" action="/api/auth/login">
+                <AntiforgeryToken />
+                <div class="mud-input-control mud-input-input-control mb-3">
+                    <label class="mud-input-label" for="email">E-Mail</label>
+                    <input id="email" name="email" type="email" required
+                           class="mud-input-slot mud-input-root mud-input-root-outlined"
+                           style="width:100%; padding:10px;" />
+                </div>
+                <div class="mud-input-control mud-input-input-control mb-3">
+                    <label class="mud-input-label" for="password">Passwort</label>
+                    <input id="password" name="password" type="password" required
+                           class="mud-input-slot mud-input-root mud-input-root-outlined"
+                           style="width:100%; padding:10px;" />
+                </div>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                           Color="Color.Primary" FullWidth="true" Class="mt-2">
+                    Anmelden
+                </MudButton>
+            </form>
+        </MudCardContent>
+        <MudCardActions Style="flex-direction:column; align-items:center; gap:8px;">
+            <MudLink Href="/register" Typo="Typo.body2">Noch kein Konto? Jetzt registrieren</MudLink>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                Demo: demo@baustellenbob.de (beliebiges Passwort)
+            </MudText>
+        </MudCardActions>
+    </MudCard>
+</div>
+
+@code {
+    private bool _error;
+
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? ErrorParam { get; set; }
+
+    protected override void OnInitialized()
+    {
+        _error = ErrorParam == "1";
+    }
+}

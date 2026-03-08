@@ -1,0 +1,95 @@
+@page "/employees"
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Mitarbeiter</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Mitarbeiter</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mb-4"
+           OnClick="OpenCreateDialog" StartIcon="@Icons.Material.Filled.PersonAdd">
+    Neuer Mitarbeiter
+</MudButton>
+
+<MudTable Items="_users" Hover="true" Striped="true" Dense="true" Loading="_loading">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>E-Mail</MudTh>
+        <MudTh>Rolle</MudTh>
+        <MudTh>Aktionen</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="E-Mail">@context.Email</MudTd>
+        <MudTd DataLabel="Rolle">
+            <MudChip T="string" Size="Size.Small">@context.Role</MudChip>
+        </MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                           OnClick="@(() => EditUser(context))" aria-label="Bearbeiten" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                           OnClick="@(() => DeleteUser(context))" aria-label="Löschen" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private List<UserDto> _users = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        _loading = true;
+        _users = await UserService.GetAllAsync();
+        _loading = false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var dialog = await DialogService.ShowAsync<UserDialog>("Neuer Mitarbeiter");
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+            await LoadUsers();
+    }
+
+    private async Task EditUser(UserDto user)
+    {
+        var parameters = new DialogParameters<UserDialog>
+        {
+            { x => x.Existing, user }
+        };
+        var dialog = await DialogService.ShowAsync<UserDialog>("Mitarbeiter bearbeiten", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+            await LoadUsers();
+    }
+
+    private async Task DeleteUser(UserDto user)
+    {
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
+            "Mitarbeiter löschen",
+            $"{user.Name} wirklich löschen?",
+            yesText: "Löschen", cancelText: "Abbrechen");
+        if (confirmed == true)
+        {
+            try
+            {
+                await UserService.DeleteAsync(user.Id);
+                await LoadUsers();
+                Snackbar.Add("Mitarbeiter gelöscht", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Fehler: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

@@ -1,0 +1,6 @@
+*.db
+uploads/
+bin/
+obj/
+.vs/
+*.user

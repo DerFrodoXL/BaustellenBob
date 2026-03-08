@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BaustellenBob.Application/BaustellenBob.Application.csproj" />
+    <Project Path="src/BaustellenBob.Domain/BaustellenBob.Domain.csproj" />
+    <Project Path="src/BaustellenBob.Infrastructure/BaustellenBob.Infrastructure.csproj" />
+    <Project Path="src/BaustellenBob.Server/BaustellenBob.Server.csproj" />
+    <Project Path="src/BaustellenBob.Shared/BaustellenBob.Shared.csproj" />
+  </Folder>
+</Solution>

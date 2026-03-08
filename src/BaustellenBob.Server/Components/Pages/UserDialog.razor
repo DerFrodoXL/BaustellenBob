@@ -1,0 +1,70 @@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_isEdit ? "Mitarbeiter bearbeiten" : "Neuer Mitarbeiter")</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-3">@_error</MudAlert>
+        }
+        <MudTextField T="string" @bind-Value="Model.Name" Label="Name" Required="true" Class="mb-3" />
+        <MudTextField T="string" @bind-Value="Model.Email" Label="E-Mail" Required="true" InputType="InputType.Email" Class="mb-3" />
+        <MudSelect T="UserRole" @bind-Value="Model.Role" Label="Rolle" Class="mb-3">
+            <MudSelectItem T="UserRole" Value="UserRole.Admin">Admin</MudSelectItem>
+            <MudSelectItem T="UserRole" Value="UserRole.Office">Büro</MudSelectItem>
+            <MudSelectItem T="UserRole" Value="UserRole.Worker">Mitarbeiter</MudSelectItem>
+        </MudSelect>
+        <MudTextField T="string" @bind-Value="Model.NewPassword"
+                      Label="@(_isEdit ? "Neues Passwort (leer = unverändert)" : "Passwort")"
+                      InputType="InputType.Password" Class="mb-3" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Inject] private IUserService UserService { get; set; } = null!;
+
+    [Parameter] public UserDto? Existing { get; set; }
+
+    private UserDto Model { get; set; } = new();
+    private bool _isEdit;
+    private string? _error;
+
+    protected override void OnParametersSet()
+    {
+        if (Existing is not null)
+        {
+            _isEdit = true;
+            Model = new UserDto
+            {
+                Id = Existing.Id,
+                Name = Existing.Name,
+                Email = Existing.Email,
+                Role = Existing.Role
+            };
+        }
+    }
+
+    private async Task Save()
+    {
+        _error = null;
+        try
+        {
+            if (_isEdit)
+                await UserService.UpdateAsync(Model);
+            else
+                await UserService.CreateAsync(Model);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (TierLimitExceededException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
