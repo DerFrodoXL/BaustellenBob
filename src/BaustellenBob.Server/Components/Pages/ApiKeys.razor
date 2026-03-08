@@ -1,0 +1,131 @@
+@page "/api-keys"
+@attribute [Authorize(Roles = "Admin")]
+@inject IApiKeyService ApiKeyService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<PageTitle>API-Schlüssel — BaustellenBob</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
+    <MudText Typo="Typo.h5" Class="mb-2">API-Schlüssel</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+        API-Schlüssel ermöglichen externen Zugriff auf Ihre Daten über die REST-API.
+        Basis-URL: <code>/api/v1/</code>
+    </MudText>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mb-4"
+               StartIcon="@Icons.Material.Filled.Add" OnClick="CreateKey">
+        Neuen Schlüssel erstellen
+    </MudButton>
+
+    @if (_newKey is not null)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="() => _newKey = null">
+            <MudText Typo="Typo.body1">Ihr neuer API-Schlüssel (wird nur einmal angezeigt):</MudText>
+            <MudText Typo="Typo.h6" Class="mt-1" Style="font-family: monospace;">@_newKey</MudText>
+            <MudButton Class="mt-2" Size="Size.Small" Variant="Variant.Outlined"
+                       OnClick="CopyKey">In Zwischenablage kopieren</MudButton>
+        </MudAlert>
+    }
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudTable Items="_keys" Hover="true" Dense="true">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Prefix</MudTh>
+                <MudTh>Erstellt</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Aktionen</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="key">
+                <MudTd>@key.Name</MudTd>
+                <MudTd><code>bb_@(key.Prefix)...</code></MudTd>
+                <MudTd>@key.CreatedAt.ToString("dd.MM.yyyy")</MudTd>
+                <MudTd>
+                    @if (key.IsActive)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Aktiv</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Error" Size="Size.Small">Widerrufen</MudChip>
+                    }
+                </MudTd>
+                <MudTd>
+                    @if (key.IsActive)
+                    {
+                        <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
+                                   OnClick="() => Revoke(key)">Widerrufen</MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <MudText Typo="Typo.caption" Class="mt-4">
+            Verfügbare Endpunkte: GET /api/v1/projects, GET /api/v1/projects/{'{'}id{'}'}, 
+            GET /api/v1/projects/{'{'}id{'}'}/reports, GET /api/v1/projects/{'{'}id{'}'}/materials, 
+            POST /api/v1/projects/{'{'}id{'}'}/reports
+        </MudText>
+    }
+</MudContainer>
+
+@code {
+    private List<ApiKeyInfo> _keys = new();
+    private bool _loading = true;
+    private string? _newKey;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _keys = await ApiKeyService.GetAllAsync();
+        _loading = false;
+    }
+
+    private async Task CreateKey()
+    {
+        var name = await PromptName();
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        var (fullKey, _) = await ApiKeyService.CreateKeyAsync(name);
+        _newKey = fullKey;
+        _keys = await ApiKeyService.GetAllAsync();
+        Snackbar.Add("API-Schlüssel erstellt", Severity.Success);
+    }
+
+    private async Task<string?> PromptName()
+    {
+        var dialog = await DialogService.ShowAsync<ApiKeyNameDialog>("API-Schlüssel erstellen",
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: string name } && !string.IsNullOrWhiteSpace(name))
+            return name;
+        return null;
+    }
+
+    private async Task Revoke(ApiKeyInfo key)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Schlüssel widerrufen", $"Schlüssel '{key.Name}' wirklich widerrufen?",
+            yesText: "Widerrufen", cancelText: "Abbrechen");
+        if (confirm == true)
+        {
+            await ApiKeyService.RevokeAsync(key.Id);
+            _keys = await ApiKeyService.GetAllAsync();
+            Snackbar.Add("Schlüssel widerrufen", Severity.Info);
+        }
+    }
+
+    private async Task CopyKey()
+    {
+        if (_newKey is not null)
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", _newKey);
+            Snackbar.Add("Kopiert!", Severity.Success);
+        }
+    }
+}

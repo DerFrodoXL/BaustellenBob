@@ -22,6 +22,9 @@ public class AppDbContext : DbContext
     public DbSet<WorkReport> WorkReports => Set<WorkReport>();
     public DbSet<MaterialEntry> MaterialEntries => Set<MaterialEntry>();
     public DbSet<ProjectAssignment> ProjectAssignments => Set<ProjectAssignment>();
+    public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
+    public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -98,6 +101,41 @@ public class AppDbContext : DbContext
             e.HasOne(a => a.Project).WithMany(b => b.Assignments).HasForeignKey(a => a.ProjectId);
             e.HasOne(a => a.User).WithMany().HasForeignKey(a => a.UserId);
             e.HasQueryFilter(a => a.TenantId == _tenantProvider.TenantId);
+        });
+
+        // Invoice
+        builder.Entity<Invoice>(e =>
+        {
+            e.HasKey(i => i.Id);
+            e.Property(i => i.InvoiceNumber).HasMaxLength(50).IsRequired();
+            e.Property(i => i.CustomerName).HasMaxLength(200);
+            e.Property(i => i.CustomerAddress).HasMaxLength(500);
+            e.Property(i => i.Notes).HasMaxLength(2000);
+            e.HasOne(i => i.Project).WithMany(p => p.Invoices).HasForeignKey(i => i.ProjectId);
+            e.HasQueryFilter(i => i.TenantId == _tenantProvider.TenantId);
+        });
+
+        // InvoiceItem
+        builder.Entity<InvoiceItem>(e =>
+        {
+            e.HasKey(i => i.Id);
+            e.Property(i => i.Description).HasMaxLength(500).IsRequired();
+            e.Property(i => i.Unit).HasMaxLength(50);
+            e.Property(i => i.Quantity).HasPrecision(10, 2);
+            e.Property(i => i.UnitPrice).HasPrecision(10, 2);
+            e.HasOne(i => i.Invoice).WithMany(inv => inv.Items).HasForeignKey(i => i.InvoiceId);
+            e.HasQueryFilter(i => i.TenantId == _tenantProvider.TenantId);
+        });
+
+        // ApiKey (not tenant-filtered via query filter — validated differently)
+        builder.Entity<ApiKey>(e =>
+        {
+            e.HasKey(k => k.Id);
+            e.Property(k => k.Name).HasMaxLength(200).IsRequired();
+            e.Property(k => k.KeyHash).HasMaxLength(128).IsRequired();
+            e.Property(k => k.KeyPrefix).HasMaxLength(20).IsRequired();
+            e.HasOne(k => k.Tenant).WithMany().HasForeignKey(k => k.TenantId);
+            e.HasIndex(k => k.KeyHash);
         });
 
         // Seed demo data

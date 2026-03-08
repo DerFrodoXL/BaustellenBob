@@ -12,10 +12,16 @@
         <MudNavLink Href="/planning" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.CalendarMonth">
             Planung
         </MudNavLink>
+        <MudNavLink Href="/invoices" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Receipt">
+            Rechnungen
+        </MudNavLink>
     </AuthorizeView>
     <AuthorizeView Roles="Admin">
         <MudNavLink Href="/employees" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.People">
             Mitarbeiter
+        </MudNavLink>
+        <MudNavLink Href="/api-keys" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Key">
+            API-Schlüssel
         </MudNavLink>
         <MudNavLink Href="/account" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Settings">
             Konto & Plan

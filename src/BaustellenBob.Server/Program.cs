@@ -55,6 +55,8 @@ builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IMaterialService, MaterialService>();
 builder.Services.AddScoped<IProjectAssignmentService, ProjectAssignmentService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 builder.Services.AddScoped<IProjectReportService>(sp =>
     new ProjectReportService(
         sp.GetRequiredService<AppDbContext>(),
@@ -215,6 +217,66 @@ app.MapGet("/api/projects/{projectId:guid}/report", async (Guid projectId, IProj
     var pdf = await reportService.GenerateReportAsync(projectId);
     return Results.File(pdf, "application/pdf", $"ProjectReport-{projectId:N}.pdf");
 }).RequireAuthorization();
+
+// Invoice PDF download
+app.MapGet("/api/invoices/{invoiceId:guid}/pdf", async (Guid invoiceId, IInvoiceService invoiceService, ITierLimitService tierLimitService) =>
+{
+    if (!await tierLimitService.CanExportPdfAsync())
+        return Results.Forbid();
+    var pdf = await invoiceService.GenerateInvoicePdfAsync(invoiceId);
+    return Results.File(pdf, "application/pdf", $"Rechnung-{invoiceId:N}.pdf");
+}).RequireAuthorization();
+
+// ---- REST API v1 (API key authentication) ----
+var api = app.MapGroup("/api/v1").AddEndpointFilter(async (ctx, next) =>
+{
+    var httpCtx = ctx.HttpContext;
+    var authHeader = httpCtx.Request.Headers["X-Api-Key"].FirstOrDefault();
+    if (string.IsNullOrEmpty(authHeader))
+        return Results.Unauthorized();
+
+    var apiKeyService = httpCtx.RequestServices.GetRequiredService<IApiKeyService>();
+    var tenantId = await apiKeyService.ValidateKeyAsync(authHeader);
+    if (tenantId is null)
+        return Results.Unauthorized();
+
+    // Set tenant context for this request via claims
+    var claims = new List<Claim>
+    {
+        new("TenantId", tenantId.Value.ToString()),
+        new(ClaimTypes.Role, "Api")
+    };
+    httpCtx.User = new ClaimsPrincipal(new ClaimsIdentity(claims, "ApiKey"));
+    return await next(ctx);
+});
+
+api.MapGet("/projects", async (IProjectService projectService) =>
+    Results.Ok(await projectService.GetAllAsync()));
+
+api.MapGet("/projects/{id:guid}", async (Guid id, IProjectService projectService) =>
+{
+    var project = await projectService.GetByIdAsync(id);
+    return project is null ? Results.NotFound() : Results.Ok(project);
+});
+
+api.MapGet("/projects/{id:guid}/reports", async (Guid id, IWorkReportService reportService) =>
+    Results.Ok(await reportService.GetByProjectAsync(id)));
+
+api.MapGet("/projects/{id:guid}/materials", async (Guid id, IMaterialService materialService) =>
+    Results.Ok(await materialService.GetByProjectAsync(id)));
+
+api.MapPost("/projects/{id:guid}/reports", async (Guid id, BaustellenBob.Application.DTOs.WorkReportDto dto, IWorkReportService reportService) =>
+{
+    try
+    {
+        var created = await reportService.CreateAsync(id, dto);
+        return Results.Created($"/api/v1/projects/{id}/reports", created);
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

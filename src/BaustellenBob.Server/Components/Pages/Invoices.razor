@@ -1,0 +1,169 @@
+@page "/invoices"
+@attribute [Authorize(Roles = "Admin,Office")]
+@inject IInvoiceService InvoiceService
+@inject IProjectService ProjectService
+@inject NavigationManager Nav
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Rechnungen — BaustellenBob</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
+    <MudText Typo="Typo.h5" Class="mb-4">Rechnungen</MudText>
+
+    <MudPaper Class="pa-4 mb-4">
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_search" Label="Suche" Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                              Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudSelect T="InvoiceStatus?" Label="Status" Value="_statusFilter"
+                           ValueChanged="s => _statusFilter = s" Clearable="true">
+                    <MudSelectItem T="InvoiceStatus?" Value="InvoiceStatus.Draft">Entwurf</MudSelectItem>
+                    <MudSelectItem T="InvoiceStatus?" Value="InvoiceStatus.Sent">Versendet</MudSelectItem>
+                    <MudSelectItem T="InvoiceStatus?" Value="InvoiceStatus.Paid">Bezahlt</MudSelectItem>
+                    <MudSelectItem T="InvoiceStatus?" Value="InvoiceStatus.Cancelled">Storniert</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="3" Class="d-flex align-end">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+                    Neue Rechnung
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <!-- Desktop Table -->
+        <MudHidden Breakpoint="Breakpoint.SmAndDown">
+            <MudTable Items="FilteredInvoices" Hover="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>Nr.</MudTh>
+                    <MudTh>Kunde</MudTh>
+                    <MudTh>Baustelle</MudTh>
+                    <MudTh>Datum</MudTh>
+                    <MudTh>Betrag</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Aktionen</MudTh>
+                </HeaderContent>
+                <RowTemplate Context="inv">
+                    <MudTd>@inv.InvoiceNumber</MudTd>
+                    <MudTd>@inv.CustomerName</MudTd>
+                    <MudTd>@inv.ProjectName</MudTd>
+                    <MudTd>@inv.IssueDate.ToString("dd.MM.yyyy")</MudTd>
+                    <MudTd>@inv.Total.ToString("N2") €</MudTd>
+                    <MudTd><MudChip T="string" Color="@StatusColor(inv.Status)" Size="Size.Small">@StatusLabel(inv.Status)</MudChip></MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                                       OnClick="@(() => GoToInvoice(inv.Id))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.PictureAsPdf" Size="Size.Small"
+                                       Href="@GetPdfUrl(inv.Id)" Target="_blank" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudHidden>
+
+        <!-- Mobile Cards -->
+        <MudHidden Breakpoint="Breakpoint.MdAndUp">
+            @foreach (var inv in FilteredInvoices)
+            {
+                <MudCard Class="mb-3" Outlined="true">
+                    <MudCardContent>
+                        <MudText Typo="Typo.subtitle1">@inv.InvoiceNumber</MudText>
+                        <MudText Typo="Typo.body2">@inv.CustomerName</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@inv.ProjectName</MudText>
+                        <MudGrid Class="mt-2">
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption">Datum</MudText>
+                                <MudText>@inv.IssueDate.ToString("dd.MM.yyyy")</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption">Betrag</MudText>
+                                <MudText>@inv.Total.ToString("N2") €</MudText>
+                            </MudItem>
+                        </MudGrid>
+                        <MudChip T="string" Color="@StatusColor(inv.Status)" Size="Size.Small" Class="mt-2">@StatusLabel(inv.Status)</MudChip>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Size="Size.Small" OnClick="@(() => GoToInvoice(inv.Id))">Details</MudButton>
+                        <MudButton Size="Size.Small" Href="@GetPdfUrl(inv.Id)" Target="_blank">PDF</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            }
+        </MudHidden>
+    }
+</MudContainer>
+
+@code {
+    private List<InvoiceDto> _invoices = new();
+    private List<ProjectDto> _projects = new();
+    private bool _loading = true;
+    private string _search = string.Empty;
+    private InvoiceStatus? _statusFilter;
+
+    private IEnumerable<InvoiceDto> FilteredInvoices => _invoices.Where(i =>
+        (_statusFilter is null || i.Status == _statusFilter) &&
+        (string.IsNullOrEmpty(_search) ||
+         i.InvoiceNumber.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+         i.CustomerName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+         i.ProjectName.Contains(_search, StringComparison.OrdinalIgnoreCase)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        _invoices = await InvoiceService.GetAllAsync();
+        _projects = await ProjectService.GetAllAsync();
+        _loading = false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<CreateInvoiceDialog> { { x => x.Projects, _projects } };
+        var dialog = await DialogService.ShowAsync<CreateInvoiceDialog>("Rechnung erstellen", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: Guid projectId })
+        {
+            try
+            {
+                var invoice = await InvoiceService.CreateFromProjectAsync(projectId);
+                _invoices.Insert(0, invoice);
+                Snackbar.Add($"Rechnung {invoice.InvoiceNumber} erstellt", Severity.Success);
+                Nav.NavigateTo($"/invoices/{invoice.Id}");
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Fehler: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private static Color StatusColor(InvoiceStatus s) => s switch
+    {
+        InvoiceStatus.Draft => Color.Default,
+        InvoiceStatus.Sent => Color.Info,
+        InvoiceStatus.Paid => Color.Success,
+        InvoiceStatus.Cancelled => Color.Error,
+        _ => Color.Default
+    };
+
+    private void GoToInvoice(Guid id) => Nav.NavigateTo($"/invoices/{id}");
+
+    private static string GetPdfUrl(Guid id) => $"/api/invoices/{id}/pdf";
+
+    private static string StatusLabel(InvoiceStatus s) => s switch
+    {
+        InvoiceStatus.Draft => "Entwurf",
+        InvoiceStatus.Sent => "Versendet",
+        InvoiceStatus.Paid => "Bezahlt",
+        InvoiceStatus.Cancelled => "Storniert",
+        _ => s.ToString()
+    };
+}

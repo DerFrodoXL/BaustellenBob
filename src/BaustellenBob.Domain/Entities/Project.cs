@@ -17,4 +17,5 @@ public class Project : BaseEntity
     public ICollection<WorkReport> WorkReports { get; set; } = new List<WorkReport>();
     public ICollection<MaterialEntry> Materials { get; set; } = new List<MaterialEntry>();
     public ICollection<ProjectAssignment> Assignments { get; set; } = new List<ProjectAssignment>();
+    public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
 }

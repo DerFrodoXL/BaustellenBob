@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#594AE2"/>
+  <text x="256" y="200" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="white" text-anchor="middle">Baustellen</text>
+  <text x="256" y="320" font-family="Arial, sans-serif" font-size="96" font-weight="bold" fill="#FFD54F" text-anchor="middle">Bob</text>
+  <rect x="156" y="360" width="200" height="8" rx="4" fill="white" opacity="0.5"/>
+</svg>

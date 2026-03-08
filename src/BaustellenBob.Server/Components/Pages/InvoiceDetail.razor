@@ -1,0 +1,236 @@
+@page "/invoices/{InvoiceId:guid}"
+@attribute [Authorize(Roles = "Admin,Office")]
+@inject IInvoiceService InvoiceService
+@inject NavigationManager Nav
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Rechnung — BaustellenBob</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_invoice is null)
+    {
+        <MudAlert Severity="Severity.Error">Rechnung nicht gefunden.</MudAlert>
+    }
+    else
+    {
+        <MudGrid>
+            <MudItem xs="12" Class="d-flex align-center gap-2 mb-2">
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick='() => Nav.NavigateTo("/invoices")' />
+                <MudText Typo="Typo.h5">@_invoice.InvoiceNumber</MudText>
+                <MudSpacer />
+                <MudChip T="string" Color="@StatusColor(_invoice.Status)" Size="Size.Small">@StatusLabel(_invoice.Status)</MudChip>
+            </MudItem>
+        </MudGrid>
+
+        <MudPaper Class="pa-4 mb-4">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_invoice.CustomerName" Label="Kunde" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_invoice.CustomerAddress" Label="Adresse" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="_invoice.InvoiceNumber" Label="Rechnungsnr." />
+                </MudItem>
+                <MudItem xs="6" sm="4">
+                    <MudDatePicker @bind-Date="_issueDate" Label="Rechnungsdatum" DateFormat="dd.MM.yyyy" />
+                </MudItem>
+                <MudItem xs="6" sm="4">
+                    <MudDatePicker @bind-Date="_dueDate" Label="Fällig am" DateFormat="dd.MM.yyyy" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="InvoiceStatus" @bind-Value="_invoice.Status" Label="Status">
+                        <MudSelectItem T="InvoiceStatus" Value="InvoiceStatus.Draft">Entwurf</MudSelectItem>
+                        <MudSelectItem T="InvoiceStatus" Value="InvoiceStatus.Sent">Versendet</MudSelectItem>
+                        <MudSelectItem T="InvoiceStatus" Value="InvoiceStatus.Paid">Bezahlt</MudSelectItem>
+                        <MudSelectItem T="InvoiceStatus" Value="InvoiceStatus.Cancelled">Storniert</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.body2">Baustelle: @_invoice.ProjectName</MudText>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_invoice.Notes" Label="Hinweise" Lines="2" />
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <!-- Invoice Items -->
+        <MudPaper Class="pa-4 mb-4">
+            <MudText Typo="Typo.h6" Class="mb-2">Positionen</MudText>
+            <MudTable Items="_invoice.Items" Hover="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>#</MudTh>
+                    <MudTh>Beschreibung</MudTh>
+                    <MudTh>Menge</MudTh>
+                    <MudTh>Einheit</MudTh>
+                    <MudTh>Einzelpreis</MudTh>
+                    <MudTh>Gesamt</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate Context="item">
+                    <MudTd>@(_invoice.Items.IndexOf(item) + 1)</MudTd>
+                    <MudTd>@item.Description</MudTd>
+                    <MudTd>@item.Quantity.ToString("N2")</MudTd>
+                    <MudTd>@item.Unit</MudTd>
+                    <MudTd>@item.UnitPrice.ToString("N2") €</MudTd>
+                    <MudTd>@item.TotalPrice.ToString("N2") €</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       OnClick="() => EditItem(item)" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="() => RemoveItem(item)" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudButton Class="mt-2" Variant="Variant.Text" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add" OnClick="AddItem">
+                Position hinzufügen
+            </MudButton>
+
+            <MudDivider Class="my-3" />
+            <MudGrid>
+                <MudItem xs="6" sm="8"></MudItem>
+                <MudItem xs="6" sm="4">
+                    @{
+                        var netto = _invoice.Items.Sum(i => i.Quantity * i.UnitPrice);
+                        var mwst = netto * 0.19m;
+                        var brutto = netto + mwst;
+                    }
+                    <MudText Align="Align.Right">Netto: @netto.ToString("N2") €</MudText>
+                    <MudText Align="Align.Right">MwSt. (19%): @mwst.ToString("N2") €</MudText>
+                    <MudText Typo="Typo.h6" Align="Align.Right">Brutto: @brutto.ToString("N2") €</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <MudGrid>
+            <MudItem xs="12" Class="d-flex gap-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save"
+                           StartIcon="@Icons.Material.Filled.Save">Speichern</MudButton>
+                <MudButton Variant="Variant.Outlined" Href="@PdfUrl" Target="_blank"
+                           StartIcon="@Icons.Material.Filled.PictureAsPdf">PDF herunterladen</MudButton>
+                <MudSpacer />
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="Delete"
+                           StartIcon="@Icons.Material.Filled.Delete">Löschen</MudButton>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public Guid InvoiceId { get; set; }
+
+    private InvoiceDto? _invoice;
+    private bool _loading = true;
+    private DateTime? _issueDate;
+    private DateTime? _dueDate;
+
+    private string PdfUrl => $"/api/invoices/{InvoiceId}/pdf";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _invoice = await InvoiceService.GetByIdAsync(InvoiceId);
+        if (_invoice is not null)
+        {
+            _issueDate = _invoice.IssueDate;
+            _dueDate = _invoice.DueDate;
+        }
+        _loading = false;
+    }
+
+    private async Task Save()
+    {
+        if (_invoice is null) return;
+        _invoice.IssueDate = _issueDate ?? _invoice.IssueDate;
+        _invoice.DueDate = _dueDate ?? _invoice.DueDate;
+        try
+        {
+            await InvoiceService.UpdateAsync(_invoice);
+            Snackbar.Add("Rechnung gespeichert", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Fehler: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task Delete()
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Rechnung löschen", $"Rechnung {_invoice!.InvoiceNumber} wirklich löschen?",
+            yesText: "Löschen", cancelText: "Abbrechen");
+        if (confirm == true)
+        {
+            await InvoiceService.DeleteAsync(_invoice.Id);
+            Snackbar.Add("Rechnung gelöscht", Severity.Info);
+            Nav.NavigateTo("/invoices");
+        }
+    }
+
+    private async Task AddItem()
+    {
+        var item = new InvoiceItemDto();
+        var parameters = new DialogParameters<InvoiceItemDialog> { { x => x.Item, item } };
+        var dialog = await DialogService.ShowAsync<InvoiceItemDialog>("Position hinzufügen", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            _invoice!.Items.Add(item);
+        }
+    }
+
+    private async Task EditItem(InvoiceItemDto item)
+    {
+        var clone = new InvoiceItemDto
+        {
+            Id = item.Id,
+            Description = item.Description,
+            Quantity = item.Quantity,
+            Unit = item.Unit,
+            UnitPrice = item.UnitPrice
+        };
+        var parameters = new DialogParameters<InvoiceItemDialog> { { x => x.Item, clone } };
+        var dialog = await DialogService.ShowAsync<InvoiceItemDialog>("Position bearbeiten", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            item.Description = clone.Description;
+            item.Quantity = clone.Quantity;
+            item.Unit = clone.Unit;
+            item.UnitPrice = clone.UnitPrice;
+        }
+    }
+
+    private void RemoveItem(InvoiceItemDto item)
+    {
+        _invoice?.Items.Remove(item);
+    }
+
+    private static Color StatusColor(InvoiceStatus s) => s switch
+    {
+        InvoiceStatus.Draft => Color.Default,
+        InvoiceStatus.Sent => Color.Info,
+        InvoiceStatus.Paid => Color.Success,
+        InvoiceStatus.Cancelled => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string StatusLabel(InvoiceStatus s) => s switch
+    {
+        InvoiceStatus.Draft => "Entwurf",
+        InvoiceStatus.Sent => "Versendet",
+        InvoiceStatus.Paid => "Bezahlt",
+        InvoiceStatus.Cancelled => "Storniert",
+        _ => s.ToString()
+    };
+}

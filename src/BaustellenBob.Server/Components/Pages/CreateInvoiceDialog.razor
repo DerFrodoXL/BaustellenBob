@@ -1,0 +1,30 @@
+@inject IDialogService DialogService
+
+<MudDialog>
+    <DialogContent>
+        <MudSelect T="Guid" @bind-Value="_selectedProjectId" Label="Baustelle auswählen" Required="true">
+            @foreach (var p in Projects)
+            {
+                <MudSelectItem T="Guid" Value="p.Id">@p.Name — @p.Customer</MudSelectItem>
+            }
+        </MudSelect>
+        <MudText Typo="Typo.caption" Class="mt-2">
+            Eine Rechnung wird aus den Materialeinträgen der Baustelle erstellt.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
+                   Disabled="_selectedProjectId == Guid.Empty">Erstellen</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public List<ProjectDto> Projects { get; set; } = new();
+
+    private Guid _selectedProjectId;
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_selectedProjectId));
+}
