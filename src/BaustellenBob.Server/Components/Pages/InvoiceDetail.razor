@@ -1,9 +1,11 @@
 @page "/invoices/{InvoiceId:guid}"
 @attribute [Authorize(Roles = "Admin,Office")]
 @inject IInvoiceService InvoiceService
+@inject ITierLimitService TierLimitService
 @inject NavigationManager Nav
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 
 <PageTitle>Rechnung — BaustellenBob</PageTitle>
 
@@ -115,7 +117,7 @@
             <MudItem xs="12" Class="d-flex gap-2">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save"
                            StartIcon="@Icons.Material.Filled.Save">Speichern</MudButton>
-                <MudButton Variant="Variant.Outlined" Href="@PdfUrl" Target="_blank"
+                <MudButton Variant="Variant.Outlined" OnClick="OpenPdfAsync"
                            StartIcon="@Icons.Material.Filled.PictureAsPdf">PDF herunterladen</MudButton>
                 <MudSpacer />
                 <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="Delete"
@@ -160,6 +162,17 @@
         {
             Snackbar.Add($"Fehler: {ex.Message}", Severity.Error);
         }
+    }
+
+    private async Task OpenPdfAsync()
+    {
+        if (!await TierLimitService.CanExportPdfAsync())
+        {
+            Snackbar.Add("PDF-Export ist in deinem Tarif nicht verfugbar. Bitte upgrade deinen Plan.", Severity.Error);
+            return;
+        }
+
+        await JS.InvokeVoidAsync("open", PdfUrl, "_blank");
     }
 
     private async Task Delete()

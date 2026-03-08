@@ -99,7 +99,6 @@ public class InvoiceService : IInvoiceService
     public async Task UpdateAsync(InvoiceDto dto)
     {
         var entity = await _db.Set<Invoice>()
-            .Include(i => i.Items)
             .FirstOrDefaultAsync(i => i.Id == dto.Id)
             ?? throw new InvalidOperationException("Invoice not found.");
 
@@ -111,9 +110,12 @@ public class InvoiceService : IInvoiceService
         entity.Status = dto.Status;
         entity.Notes = dto.Notes;
 
-        // Sync items: remove old, add new
-        _db.Set<InvoiceItem>().RemoveRange(entity.Items);
-        entity.Items = dto.Items.Select(i => new InvoiceItem
+        // Replace all invoice items in a set-based way to avoid tracking concurrency conflicts.
+        await _db.Set<InvoiceItem>()
+            .Where(i => i.InvoiceId == entity.Id)
+            .ExecuteDeleteAsync();
+
+        var items = dto.Items.Select(i => new InvoiceItem
         {
             Id = Guid.NewGuid(),
             TenantId = _tenantProvider.TenantId,
@@ -123,6 +125,8 @@ public class InvoiceService : IInvoiceService
             Unit = i.Unit,
             UnitPrice = i.UnitPrice
         }).ToList();
+
+        await _db.Set<InvoiceItem>().AddRangeAsync(items);
 
         await _db.SaveChangesAsync();
     }

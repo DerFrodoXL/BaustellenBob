@@ -2,9 +2,11 @@
 @attribute [Authorize(Roles = "Admin,Office")]
 @inject IInvoiceService InvoiceService
 @inject IProjectService ProjectService
+@inject ITierLimitService TierLimitService
 @inject NavigationManager Nav
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 
 <PageTitle>Rechnungen — BaustellenBob</PageTitle>
 
@@ -65,7 +67,7 @@
                         <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
                                        OnClick="@(() => GoToInvoice(inv.Id))" />
                         <MudIconButton Icon="@Icons.Material.Filled.PictureAsPdf" Size="Size.Small"
-                                       Href="@GetPdfUrl(inv.Id)" Target="_blank" />
+                                       OnClick="() => OpenPdfAsync(inv.Id)" />
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -94,7 +96,7 @@
                     </MudCardContent>
                     <MudCardActions>
                         <MudButton Size="Size.Small" OnClick="@(() => GoToInvoice(inv.Id))">Details</MudButton>
-                        <MudButton Size="Size.Small" Href="@GetPdfUrl(inv.Id)" Target="_blank">PDF</MudButton>
+                        <MudButton Size="Size.Small" OnClick="() => OpenPdfAsync(inv.Id)">PDF</MudButton>
                     </MudCardActions>
                 </MudCard>
             }
@@ -155,6 +157,17 @@
     };
 
     private void GoToInvoice(Guid id) => Nav.NavigateTo($"/invoices/{id}");
+
+    private async Task OpenPdfAsync(Guid id)
+    {
+        if (!await TierLimitService.CanExportPdfAsync())
+        {
+            Snackbar.Add("PDF-Export ist in deinem Tarif nicht verfugbar. Bitte upgrade deinen Plan.", Severity.Error);
+            return;
+        }
+
+        await JS.InvokeVoidAsync("open", GetPdfUrl(id), "_blank");
+    }
 
     private static string GetPdfUrl(Guid id) => $"/api/invoices/{id}/pdf";
 

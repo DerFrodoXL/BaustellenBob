@@ -27,9 +27,35 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     .AddCookie(options =>
     {
         options.LoginPath = "/login";
+        options.AccessDeniedPath = "/login";
         options.LogoutPath = "/api/auth/logout";
         options.ExpireTimeSpan = TimeSpan.FromDays(7);
         options.SlidingExpiration = true;
+        options.Events = new CookieAuthenticationEvents
+        {
+            OnRedirectToLogin = context =>
+            {
+                if (context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return Task.CompletedTask;
+                }
+
+                context.Response.Redirect(context.RedirectUri);
+                return Task.CompletedTask;
+            },
+            OnRedirectToAccessDenied = context =>
+            {
+                if (context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return Task.CompletedTask;
+                }
+
+                context.Response.Redirect(context.RedirectUri);
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
@@ -214,7 +240,11 @@ app.MapGet("/uploads/{tenantId}/{**filePath}", (HttpContext ctx, string tenantId
 app.MapGet("/api/projects/{projectId:guid}/report", async (Guid projectId, IProjectReportService reportService, ITierLimitService tierLimitService) =>
 {
     if (!await tierLimitService.CanExportPdfAsync())
-        return Results.Forbid();
+        return Results.Problem(
+            title: "PDF-Export nicht verfugbar",
+            detail: "Ihr aktueller Tarif unterstutzt keinen PDF-Export.",
+            statusCode: StatusCodes.Status403Forbidden);
+
     var pdf = await reportService.GenerateReportAsync(projectId);
     return Results.File(pdf, "application/pdf", $"ProjectReport-{projectId:N}.pdf");
 }).RequireAuthorization();
@@ -223,7 +253,11 @@ app.MapGet("/api/projects/{projectId:guid}/report", async (Guid projectId, IProj
 app.MapGet("/api/invoices/{invoiceId:guid}/pdf", async (Guid invoiceId, IInvoiceService invoiceService, ITierLimitService tierLimitService) =>
 {
     if (!await tierLimitService.CanExportPdfAsync())
-        return Results.Forbid();
+        return Results.Problem(
+            title: "PDF-Export nicht verfugbar",
+            detail: "Ihr aktueller Tarif unterstutzt keinen PDF-Export.",
+            statusCode: StatusCodes.Status403Forbidden);
+
     var pdf = await invoiceService.GenerateInvoicePdfAsync(invoiceId);
     return Results.File(pdf, "application/pdf", $"Rechnung-{invoiceId:N}.pdf");
 }).RequireAuthorization();
