@@ -6,18 +6,34 @@ namespace BaustellenBob.Server.Services;
 
 /// <summary>
 /// Resolves current user info from the authenticated user's claims.
+/// Uses IHttpContextAccessor for minimal API calls, falls back to
+/// AuthenticationStateProvider for Blazor component scope.
 /// </summary>
 public class CurrentUserProvider : ICurrentUserProvider
 {
-    private readonly AuthenticationStateProvider _authState;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly AuthenticationStateProvider? _authState;
 
-    public CurrentUserProvider(AuthenticationStateProvider authState)
+    public CurrentUserProvider(IHttpContextAccessor httpContextAccessor, AuthenticationStateProvider? authState = null)
     {
+        _httpContextAccessor = httpContextAccessor;
         _authState = authState;
     }
 
-    private ClaimsPrincipal User =>
-        _authState.GetAuthenticationStateAsync().GetAwaiter().GetResult().User;
+    private ClaimsPrincipal User
+    {
+        get
+        {
+            var httpUser = _httpContextAccessor.HttpContext?.User;
+            if (httpUser?.Identity?.IsAuthenticated == true)
+                return httpUser;
+
+            if (_authState is not null)
+                return _authState.GetAuthenticationStateAsync().GetAwaiter().GetResult().User;
+
+            return new ClaimsPrincipal();
+        }
+    }
 
     public Guid UserId
     {
