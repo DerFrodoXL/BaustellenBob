@@ -15,4 +15,6 @@ public class Project : BaseEntity
     public Tenant Tenant { get; set; } = null!;
     public ICollection<Photo> Photos { get; set; } = new List<Photo>();
     public ICollection<WorkReport> WorkReports { get; set; } = new List<WorkReport>();
+    public ICollection<MaterialEntry> Materials { get; set; } = new List<MaterialEntry>();
+    public ICollection<ProjectAssignment> Assignments { get; set; } = new List<ProjectAssignment>();
 }

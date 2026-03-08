@@ -1,0 +1,203 @@
+@page "/planning"
+@attribute [Authorize(Roles = "Admin,Office")]
+
+<PageTitle>Planung</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Mitarbeiterplanung</MudText>
+
+<MudGrid Class="mb-4">
+    <MudItem xs="12" sm="6" Class="d-flex align-center gap-2">
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="PreviousWeek" />
+        <MudText Typo="Typo.h6">
+            @_weekStart.ToString("dd.MM.") – @_weekStart.AddDays(6).ToString("dd.MM.yyyy")
+        </MudText>
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="NextWeek" />
+        <MudButton Variant="Variant.Text" OnClick="GoToThisWeek" Size="Size.Small">Heute</MudButton>
+    </MudItem>
+    <MudItem xs="12" sm="6" Class="d-flex justify-end">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   OnClick="OpenCreateDialog" StartIcon="@Icons.Material.Filled.Add">
+            Einplanen
+        </MudButton>
+    </MudItem>
+</MudGrid>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (!_assignments.Any())
+{
+    <MudAlert Severity="Severity.Info">Keine Zuordnungen in dieser Woche.</MudAlert>
+}
+else
+{
+    @* Group by employee *@
+    @foreach (var group in _assignments.GroupBy(a => new { a.UserId, a.UserName }).OrderBy(g => g.Key.UserName))
+    {
+        <MudCard Class="mb-3">
+            <MudCardHeader>
+                <MudAvatar Color="Color.Primary" Size="Size.Small">
+                    @group.Key.UserName[0]
+                </MudAvatar>
+                <MudText Typo="Typo.h6" Class="ml-2">@group.Key.UserName</MudText>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudSimpleTable Dense="true" Hover="true">
+                    <thead>
+                        <tr>
+                            <th>Baustelle</th>
+                            <th>Von</th>
+                            <th>Bis</th>
+                            <th>Notizen</th>
+                            <th>Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in group.OrderBy(x => x.StartDate))
+                        {
+                            <tr>
+                                <td>
+                                    <MudLink Href="@($"/projects/{a.ProjectId}")">@a.ProjectName</MudLink>
+                                </td>
+                                <td>@a.StartDate.ToString("dd.MM.")</td>
+                                <td>@a.EndDate.ToString("dd.MM.")</td>
+                                <td>@a.Notes</td>
+                                <td>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                   OnClick="@(() => EditAssignment(a))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                   Color="Color.Error" OnClick="@(() => DeleteAssignment(a))" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudCardContent>
+        </MudCard>
+    }
+
+    @* Visual week grid *@
+    <MudText Typo="Typo.h6" Class="mt-4 mb-2">Wochenübersicht</MudText>
+    <MudSimpleTable Dense="true" Style="overflow-x:auto;">
+        <thead>
+            <tr>
+                <th>Mitarbeiter</th>
+                @for (int d = 0; d < 7; d++)
+                {
+                    var day = _weekStart.AddDays(d);
+                    <th>@day.ToString("ddd dd.")</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var group in _assignments.GroupBy(a => new { a.UserId, a.UserName }).OrderBy(g => g.Key.UserName))
+            {
+                <tr>
+                    <td><strong>@group.Key.UserName</strong></td>
+                    @for (int d = 0; d < 7; d++)
+                    {
+                        var day = _weekStart.AddDays(d);
+                        var active = group.Where(a => a.StartDate <= day && a.EndDate >= day).ToList();
+                        <td>
+                            @foreach (var a in active)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ma-1">
+                                    @a.ProjectName
+                                </MudChip>
+                            }
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    [Inject] private IProjectAssignmentService AssignmentService { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private List<ProjectAssignmentDto> _assignments = new();
+    private DateTime _weekStart;
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        GoToThisWeek();
+        await LoadWeek();
+    }
+
+    private void GoToThisWeek()
+    {
+        var today = DateTime.Today;
+        var diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
+        _weekStart = today.AddDays(-diff);
+    }
+
+    private async Task PreviousWeek()
+    {
+        _weekStart = _weekStart.AddDays(-7);
+        await LoadWeek();
+    }
+
+    private async Task NextWeek()
+    {
+        _weekStart = _weekStart.AddDays(7);
+        await LoadWeek();
+    }
+
+    private async Task LoadWeek()
+    {
+        _loading = true;
+        _assignments = await AssignmentService.GetByWeekAsync(_weekStart);
+        _loading = false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<AssignmentDialog>
+        {
+            { x => x.ShowProjectSelect, true }
+        };
+        var dialog = await DialogService.ShowAsync<AssignmentDialog>("Mitarbeiter einplanen", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+            await LoadWeek();
+    }
+
+    private async Task EditAssignment(ProjectAssignmentDto assignment)
+    {
+        var parameters = new DialogParameters<AssignmentDialog>
+        {
+            { x => x.Existing, assignment },
+            { x => x.ShowProjectSelect, true }
+        };
+        var dialog = await DialogService.ShowAsync<AssignmentDialog>("Planung bearbeiten", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+            await LoadWeek();
+    }
+
+    private async Task DeleteAssignment(ProjectAssignmentDto assignment)
+    {
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
+            "Planung löschen",
+            $"Zuordnung von {assignment.UserName} löschen?",
+            yesText: "Löschen", cancelText: "Abbrechen");
+        if (confirmed == true)
+        {
+            try
+            {
+                await AssignmentService.DeleteAsync(assignment.Id);
+                await LoadWeek();
+                Snackbar.Add("Zuordnung gelöscht", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Fehler: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

@@ -20,6 +20,8 @@ public class AppDbContext : DbContext
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<Photo> Photos => Set<Photo>();
     public DbSet<WorkReport> WorkReports => Set<WorkReport>();
+    public DbSet<MaterialEntry> MaterialEntries => Set<MaterialEntry>();
+    public DbSet<ProjectAssignment> ProjectAssignments => Set<ProjectAssignment>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -74,6 +76,28 @@ public class AppDbContext : DbContext
             e.HasOne(w => w.Project).WithMany(b => b.WorkReports).HasForeignKey(w => w.ProjectId);
             e.HasOne(w => w.User).WithMany().HasForeignKey(w => w.UserId);
             e.HasQueryFilter(w => w.TenantId == _tenantProvider.TenantId);
+        });
+
+        // MaterialEntry
+        builder.Entity<MaterialEntry>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.Property(m => m.Name).HasMaxLength(300).IsRequired();
+            e.Property(m => m.Unit).HasMaxLength(50);
+            e.Property(m => m.Quantity).HasPrecision(10, 2);
+            e.Property(m => m.UnitPrice).HasPrecision(10, 2);
+            e.HasOne(m => m.Project).WithMany(b => b.Materials).HasForeignKey(m => m.ProjectId);
+            e.HasQueryFilter(m => m.TenantId == _tenantProvider.TenantId);
+        });
+
+        // ProjectAssignment
+        builder.Entity<ProjectAssignment>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Notes).HasMaxLength(500);
+            e.HasOne(a => a.Project).WithMany(b => b.Assignments).HasForeignKey(a => a.ProjectId);
+            e.HasOne(a => a.User).WithMany().HasForeignKey(a => a.UserId);
+            e.HasQueryFilter(a => a.TenantId == _tenantProvider.TenantId);
         });
 
         // Seed demo data

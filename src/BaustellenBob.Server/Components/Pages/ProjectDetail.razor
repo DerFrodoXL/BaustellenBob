@@ -140,6 +140,91 @@ else
                 }
             </div>
         </MudTabPanel>
+
+        <MudTabPanel Text="@($"Material ({_materials.Count})")" Icon="@Icons.Material.Filled.Inventory">
+            <div class="pa-4">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mb-4"
+                           OnClick="OpenMaterialDialog" StartIcon="@Icons.Material.Filled.Add">
+                    Material hinzufügen
+                </MudButton>
+
+                @if (_materials.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch kein Material erfasst.</MudText>
+                }
+                else
+                {
+                    <MudTable Items="_materials" Hover="true" Dense="true" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Material</MudTh>
+                            <MudTh>Menge</MudTh>
+                            <MudTh>Einheit</MudTh>
+                            <MudTh>Einzelpreis</MudTh>
+                            <MudTh>Gesamt</MudTh>
+                            <MudTh>Aktionen</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Material">@context.Name</MudTd>
+                            <MudTd DataLabel="Menge">@context.Quantity.ToString("N2")</MudTd>
+                            <MudTd DataLabel="Einheit">@context.Unit</MudTd>
+                            <MudTd DataLabel="Einzelpreis">@context.UnitPrice.ToString("N2") €</MudTd>
+                            <MudTd DataLabel="Gesamt">@context.TotalPrice.ToString("N2") €</MudTd>
+                            <MudTd>
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                               OnClick="@(() => EditMaterial(context))" aria-label="Bearbeiten" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                               OnClick="@(() => DeleteMaterial(context))" aria-label="Löschen" />
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                    <MudText Typo="Typo.subtitle1" Class="mt-3">
+                        <strong>Materialkosten gesamt: @_materials.Sum(m => m.TotalPrice).ToString("N2") €</strong>
+                    </MudText>
+                }
+            </div>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@($"Planung ({_assignments.Count})")" Icon="@Icons.Material.Filled.CalendarMonth">
+            <div class="pa-4">
+                <AuthorizeView Roles="Admin,Office">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mb-4"
+                               OnClick="OpenAssignmentDialog" StartIcon="@Icons.Material.Filled.PersonAdd">
+                        Mitarbeiter einplanen
+                    </MudButton>
+                </AuthorizeView>
+
+                @if (_assignments.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine Mitarbeiter eingeplant.</MudText>
+                }
+                else
+                {
+                    <MudTable Items="_assignments" Hover="true" Dense="true" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Mitarbeiter</MudTh>
+                            <MudTh>Von</MudTh>
+                            <MudTh>Bis</MudTh>
+                            <MudTh>Notizen</MudTh>
+                            <MudTh>Aktionen</MudTh>
+                        </HeaderContent>
+                        <RowTemplate Context="assignment">
+                            <MudTd DataLabel="Mitarbeiter">@assignment.UserName</MudTd>
+                            <MudTd DataLabel="Von">@assignment.StartDate.ToShortDateString()</MudTd>
+                            <MudTd DataLabel="Bis">@assignment.EndDate.ToShortDateString()</MudTd>
+                            <MudTd DataLabel="Notizen">@assignment.Notes</MudTd>
+                            <MudTd>
+                                <AuthorizeView Roles="Admin,Office" Context="authCtx">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                   OnClick="@(() => EditAssignment(assignment))" aria-label="Bearbeiten" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                   OnClick="@(() => DeleteAssignment(assignment))" aria-label="Löschen" />
+                                </AuthorizeView>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </div>
+        </MudTabPanel>
     </MudTabs>
 }
 
@@ -148,6 +233,8 @@ else
     [Inject] private IProjectService ProjectService { get; set; } = null!;
     [Inject] private IPhotoService PhotoService { get; set; } = null!;
     [Inject] private IWorkReportService WorkReportService { get; set; } = null!;
+    [Inject] private IMaterialService MaterialService { get; set; } = null!;
+    [Inject] private IProjectAssignmentService AssignmentService { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private ITierLimitService TierLimitService { get; set; } = null!;
@@ -155,6 +242,8 @@ else
     private ProjectDto? _project;
     private List<PhotoDto> _photos = new();
     private List<WorkReportDto> _reports = new();
+    private List<MaterialEntryDto> _materials = new();
+    private List<ProjectAssignmentDto> _assignments = new();
     private bool _canExportPdf;
 
     // Photo upload state
@@ -173,6 +262,8 @@ else
         _project = await ProjectService.GetByIdAsync(Id);
         _photos = await PhotoService.GetByProjectAsync(Id);
         _reports = await WorkReportService.GetByProjectAsync(Id);
+        _materials = await MaterialService.GetByProjectAsync(Id);
+        _assignments = await AssignmentService.GetByProjectAsync(Id);
     }
 
     private void OnPhotoSelected(InputFileChangeEventArgs e)
@@ -277,6 +368,94 @@ else
                 await WorkReportService.DeleteAsync(report.Id);
                 _reports = await WorkReportService.GetByProjectAsync(Id);
                 Snackbar.Add("Rapport gelöscht", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Fehler: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    // --- Material ---
+    private async Task OpenMaterialDialog()
+    {
+        var dialog = await DialogService.ShowAsync<MaterialDialog>("Material hinzufügen",
+            new DialogParameters<MaterialDialog> { { x => x.ProjectId, Id } });
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+            _materials = await MaterialService.GetByProjectAsync(Id);
+    }
+
+    private async Task EditMaterial(MaterialEntryDto material)
+    {
+        var parameters = new DialogParameters<MaterialDialog>
+        {
+            { x => x.ProjectId, Id },
+            { x => x.Existing, material }
+        };
+        var dialog = await DialogService.ShowAsync<MaterialDialog>("Material bearbeiten", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+            _materials = await MaterialService.GetByProjectAsync(Id);
+    }
+
+    private async Task DeleteMaterial(MaterialEntryDto material)
+    {
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
+            "Material löschen",
+            $"'{material.Name}' wirklich löschen?",
+            yesText: "Löschen", cancelText: "Abbrechen");
+        if (confirmed == true)
+        {
+            try
+            {
+                await MaterialService.DeleteAsync(material.Id);
+                _materials = await MaterialService.GetByProjectAsync(Id);
+                Snackbar.Add("Material gelöscht", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Fehler: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    // --- Planung ---
+    private async Task OpenAssignmentDialog()
+    {
+        var dialog = await DialogService.ShowAsync<AssignmentDialog>("Mitarbeiter einplanen",
+            new DialogParameters<AssignmentDialog> { { x => x.ProjectId, Id } });
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+            _assignments = await AssignmentService.GetByProjectAsync(Id);
+    }
+
+    private async Task EditAssignment(ProjectAssignmentDto assignment)
+    {
+        var parameters = new DialogParameters<AssignmentDialog>
+        {
+            { x => x.ProjectId, Id },
+            { x => x.Existing, assignment }
+        };
+        var dialog = await DialogService.ShowAsync<AssignmentDialog>("Planung bearbeiten", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+            _assignments = await AssignmentService.GetByProjectAsync(Id);
+    }
+
+    private async Task DeleteAssignment(ProjectAssignmentDto assignment)
+    {
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
+            "Planung löschen",
+            $"Zuordnung von {assignment.UserName} wirklich löschen?",
+            yesText: "Löschen", cancelText: "Abbrechen");
+        if (confirmed == true)
+        {
+            try
+            {
+                await AssignmentService.DeleteAsync(assignment.Id);
+                _assignments = await AssignmentService.GetByProjectAsync(Id);
+                Snackbar.Add("Zuordnung gelöscht", Severity.Success);
             }
             catch (Exception ex)
             {

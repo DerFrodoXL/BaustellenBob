@@ -1,0 +1,102 @@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_isEdit ? "Planung bearbeiten" : "Mitarbeiter einplanen")</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (ShowProjectSelect)
+        {
+            <MudSelect T="Guid" @bind-Value="Model.ProjectId" Label="Baustelle" Required="true" Class="mb-3"
+                       AnchorOrigin="Origin.BottomCenter">
+                @foreach (var p in _projects)
+                {
+                    <MudSelectItem T="Guid" Value="@p.Id">@p.Name</MudSelectItem>
+                }
+            </MudSelect>
+        }
+        <MudSelect T="Guid" @bind-Value="Model.UserId" Label="Mitarbeiter" Required="true" Class="mb-3"
+                   AnchorOrigin="Origin.BottomCenter">
+            @foreach (var u in _users)
+            {
+                <MudSelectItem T="Guid" Value="@u.Id">@u.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudGrid>
+            <MudItem xs="6">
+                <MudDatePicker @bind-Date="_startDate" Label="Von" Required="true" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudDatePicker @bind-Date="_endDate" Label="Bis" Required="true" />
+            </MudItem>
+        </MudGrid>
+        <MudTextField @bind-Value="Model.Notes" Label="Notizen" Lines="2" Class="mt-3" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Inject] private IProjectAssignmentService AssignmentService { get; set; } = null!;
+    [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private IProjectService ProjectService { get; set; } = null!;
+
+    [Parameter] public Guid ProjectId { get; set; }
+    [Parameter] public bool ShowProjectSelect { get; set; }
+    [Parameter] public ProjectAssignmentDto? Existing { get; set; }
+
+    private ProjectAssignmentDto Model { get; set; } = new();
+    private List<UserDto> _users = new();
+    private List<ProjectDto> _projects = new();
+    private DateTime? _startDate = DateTime.Today;
+    private DateTime? _endDate = DateTime.Today.AddDays(1);
+    private bool _isEdit;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _users = await UserService.GetAllAsync();
+        if (ShowProjectSelect)
+        {
+            var all = await ProjectService.GetAllAsync();
+            _projects = all.Where(p => p.Status == ProjectStatus.Active).ToList();
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Existing is not null)
+        {
+            _isEdit = true;
+            Model = new ProjectAssignmentDto
+            {
+                Id = Existing.Id,
+                ProjectId = Existing.ProjectId,
+                UserId = Existing.UserId,
+                StartDate = Existing.StartDate,
+                EndDate = Existing.EndDate,
+                Notes = Existing.Notes
+            };
+            _startDate = Existing.StartDate;
+            _endDate = Existing.EndDate;
+        }
+        else
+        {
+            Model.ProjectId = ProjectId;
+        }
+    }
+
+    private async Task Save()
+    {
+        Model.StartDate = _startDate ?? DateTime.Today;
+        Model.EndDate = _endDate ?? DateTime.Today.AddDays(1);
+
+        if (_isEdit)
+            await AssignmentService.UpdateAsync(Model);
+        else
+            await AssignmentService.CreateAsync(Model);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

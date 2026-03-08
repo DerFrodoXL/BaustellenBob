@@ -36,6 +36,11 @@ public class ProjectReportService : IProjectReportService
             .OrderBy(w => w.ReportDate)
             .ToListAsync();
 
+        var materials = await _db.MaterialEntries
+            .Where(m => m.ProjectId == projectId)
+            .OrderBy(m => m.Name)
+            .ToListAsync();
+
         var document = Document.Create(container =>
         {
             container.Page(page =>
@@ -98,6 +103,43 @@ public class ProjectReportService : IProjectReportService
 
                         var totalHours = reports.Sum(r => r.Hours);
                         col.Item().PaddingTop(5).Text($"Stunden gesamt: {totalHours} h").Bold();
+                    }
+
+                    if (materials.Count > 0)
+                    {
+                        col.Item().PaddingTop(15).Text("Materialliste").FontSize(14).SemiBold();
+                        col.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.RelativeColumn(3);
+                                columns.ConstantColumn(60);
+                                columns.ConstantColumn(50);
+                                columns.ConstantColumn(80);
+                                columns.ConstantColumn(80);
+                            });
+
+                            table.Header(header =>
+                            {
+                                header.Cell().Text("Material").Bold();
+                                header.Cell().Text("Menge").Bold();
+                                header.Cell().Text("Einheit").Bold();
+                                header.Cell().Text("Einzelpreis").Bold();
+                                header.Cell().Text("Gesamt").Bold();
+                            });
+
+                            foreach (var m in materials)
+                            {
+                                table.Cell().Text(m.Name);
+                                table.Cell().Text(m.Quantity.ToString("N2"));
+                                table.Cell().Text(m.Unit);
+                                table.Cell().Text($"{m.UnitPrice:N2} €");
+                                table.Cell().Text($"{(m.Quantity * m.UnitPrice):N2} €");
+                            }
+                        });
+
+                        var totalCost = materials.Sum(m => m.Quantity * m.UnitPrice);
+                        col.Item().PaddingTop(5).Text($"Materialkosten gesamt: {totalCost:N2} €").Bold();
                     }
 
                     if (photos.Count > 0)

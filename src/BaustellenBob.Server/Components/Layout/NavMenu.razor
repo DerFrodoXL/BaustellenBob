@@ -8,6 +8,11 @@
     <MudNavLink Href="/quick-report" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.NoteAdd">
         Rapport erfassen
     </MudNavLink>
+    <AuthorizeView Roles="Admin,Office">
+        <MudNavLink Href="/planning" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.CalendarMonth">
+            Planung
+        </MudNavLink>
+    </AuthorizeView>
     <AuthorizeView Roles="Admin">
         <MudNavLink Href="/employees" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.People">
             Mitarbeiter
