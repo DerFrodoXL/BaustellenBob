@@ -5,20 +5,42 @@
 
 <MudText Typo="Typo.h4" Class="mb-4">Baustellen</MudText>
 
-<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-           OnClick="OpenCreateDialog" Class="mb-4">
-    Neue Baustelle
-</MudButton>
+<MudGrid Class="mb-4">
+    <MudItem xs="12" sm="5">
+        <MudTextField T="string" @bind-Value="_search" Placeholder="Suche nach Name, Kunde, Adresse…"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Immediate="true" DebounceInterval="300" TextChanged="OnSearchChanged" />
+    </MudItem>
+    <MudItem xs="8" sm="4">
+        <MudSelect T="ProjectStatus?" Value="_statusFilter" Label="Status" Clearable="true"
+                   ValueChanged="OnStatusFilterChanged">
+            <MudSelectItem T="ProjectStatus?" Value="ProjectStatus.Active">Aktiv</MudSelectItem>
+            <MudSelectItem T="ProjectStatus?" Value="ProjectStatus.Paused">Pausiert</MudSelectItem>
+            <MudSelectItem T="ProjectStatus?" Value="ProjectStatus.Completed">Abgeschlossen</MudSelectItem>
+            <MudSelectItem T="ProjectStatus?" Value="ProjectStatus.Archived">Archiviert</MudSelectItem>
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="4" sm="3" Class="d-flex align-end">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreateDialog" FullWidth="true">
+            Neue Baustelle
+        </MudButton>
+    </MudItem>
+</MudGrid>
 
 @if (_loading)
 {
     <MudProgressCircular Indeterminate="true" />
 }
+else if (!FilteredProjects.Any())
+{
+    <MudAlert Severity="Severity.Info">Keine Baustellen gefunden.</MudAlert>
+}
 else
 {
     @* Desktop: Table *@
     <MudHidden Breakpoint="Breakpoint.SmAndDown">
-        <MudTable Items="_projects" Hover="true" Dense="true" Striped="true">
+        <MudTable Items="FilteredProjects" Hover="true" Dense="true" Striped="true">
             <HeaderContent>
                 <MudTh>Name</MudTh>
                 <MudTh>Kunde</MudTh>
@@ -47,7 +69,7 @@ else
     @* Mobile: Cards *@
     <MudHidden Breakpoint="Breakpoint.MdAndUp">
         <MudGrid>
-            @foreach (var b in _projects)
+            @foreach (var b in FilteredProjects)
             {
                 <MudItem xs="12">
                     <MudCard>
@@ -78,6 +100,15 @@ else
 
     private List<ProjectDto> _projects = new();
     private bool _loading = true;
+    private string _search = string.Empty;
+    private ProjectStatus? _statusFilter;
+
+    private IEnumerable<ProjectDto> FilteredProjects => _projects
+        .Where(p => _statusFilter is null || p.Status == _statusFilter)
+        .Where(p => string.IsNullOrWhiteSpace(_search)
+            || p.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || p.Customer.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || p.Address.Contains(_search, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {
@@ -90,6 +121,9 @@ else
         _projects = await ProjectService.GetAllAsync();
         _loading = false;
     }
+
+    private void OnSearchChanged(string value) => _search = value;
+    private void OnStatusFilterChanged(ProjectStatus? value) => _statusFilter = value;
 
     private async Task Archive(Guid id)
     {

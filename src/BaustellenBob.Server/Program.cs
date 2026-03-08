@@ -52,6 +52,7 @@ builder.Services.AddScoped<IWorkReportService, WorkReportService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITierLimitService, TierLimitService>();
 builder.Services.AddScoped<IRegistrationService, RegistrationService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IProjectReportService>(sp =>
     new ProjectReportService(
         sp.GetRequiredService<AppDbContext>(),

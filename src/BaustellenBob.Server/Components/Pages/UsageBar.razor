@@ -1,0 +1,30 @@
+@* Reusable usage-bar showing current/max with progress indicator *@
+
+<div>
+    <div class="d-flex justify-space-between mb-1">
+        <MudText Typo="Typo.body2"><strong>@Label</strong></MudText>
+        <MudText Typo="Typo.body2">
+            @Current / @(IsUnlimited ? "∞" : Max.ToString())
+        </MudText>
+    </div>
+    <MudProgressLinear Value="@Percentage" Color="@BarColor" Rounded="true" Size="Size.Medium" />
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = string.Empty;
+    [Parameter] public int Current { get; set; }
+    [Parameter] public int Max { get; set; }
+
+    private bool IsUnlimited => Max == int.MaxValue;
+
+    private double Percentage => IsUnlimited
+        ? (Current > 0 ? 15 : 0)
+        : (Max > 0 ? Math.Min(100, (double)Current / Max * 100) : 0);
+
+    private Color BarColor => Percentage switch
+    {
+        >= 90 => Color.Error,
+        >= 70 => Color.Warning,
+        _ => Color.Success
+    };
+}

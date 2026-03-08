@@ -11,6 +11,7 @@ public interface ITierLimitService
     Task EnsureCanCreateReportAsync();
     Task<bool> CanExportPdfAsync();
     Task<TierUsage> GetUsageAsync();
+    Task<string> GetCurrentTierNameAsync();
 }
 
 public record TierUsage(int Projects, int Employees, int Photos, int Reports);

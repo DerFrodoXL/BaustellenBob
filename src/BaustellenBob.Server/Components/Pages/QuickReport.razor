@@ -1,0 +1,121 @@
+@page "/quick-report"
+@attribute [Authorize]
+
+<PageTitle>Schnelleinstieg Rapport</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Rapport erfassen</MudText>
+
+<MudCard Class="pa-4">
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-3">@_error</MudAlert>
+    }
+    @if (_success)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-3">Rapport gespeichert!</MudAlert>
+    }
+
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <MudSelect T="Guid?" @bind-Value="_selectedProjectId" Label="Baustelle" Required="true"
+                       AnchorOrigin="Origin.BottomCenter">
+                @foreach (var p in _projects)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)p.Id)">@p.Name — @p.Customer</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudDatePicker @bind-Date="_reportDate" Label="Datum" Required="true" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudNumericField @bind-Value="_hours" Label="Stunden" Min="0.25m" Max="24m" Step="0.25m" />
+        </MudItem>
+        <MudItem xs="12" sm="8">
+            <MudTextField @bind-Value="_activity" Label="Tätigkeit" Required="true" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_material" Label="Material (optional)" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                       OnClick="Save" Disabled="@_saving"
+                       StartIcon="@Icons.Material.Filled.Save" Size="Size.Large">
+                @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" /> }
+                else { <text>Rapport speichern</text> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudCard>
+
+@code {
+    [Inject] private IProjectService ProjectService { get; set; } = null!;
+    [Inject] private IWorkReportService WorkReportService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private List<ProjectDto> _projects = new();
+    private Guid? _selectedProjectId;
+    private DateTime? _reportDate = DateTime.Today;
+    private decimal _hours = 8;
+    private string _activity = string.Empty;
+    private string _material = string.Empty;
+    private bool _saving;
+    private bool _success;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var all = await ProjectService.GetAllAsync();
+        _projects = all.Where(p => p.Status == ProjectStatus.Active).ToList();
+    }
+
+    private async Task Save()
+    {
+        _error = null;
+        _success = false;
+
+        if (_selectedProjectId is null)
+        {
+            _error = "Bitte eine Baustelle auswählen.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_activity))
+        {
+            _error = "Bitte eine Tätigkeit angeben.";
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var dto = new WorkReportDto
+            {
+                ReportDate = _reportDate ?? DateTime.Today,
+                Hours = _hours,
+                Activity = _activity,
+                Material = _material
+            };
+            await WorkReportService.CreateAsync(_selectedProjectId.Value, dto);
+            _success = true;
+            Snackbar.Add("Rapport gespeichert", Severity.Success);
+
+            // Reset form for next entry but keep project selection
+            _activity = string.Empty;
+            _material = string.Empty;
+            _hours = 8;
+            _reportDate = DateTime.Today;
+        }
+        catch (TierLimitExceededException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Fehler: {ex.Message}";
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

@@ -5,90 +5,107 @@
 
 <MudText Typo="Typo.h4" Class="mb-4">Dashboard</MudText>
 
-<MudGrid>
-    <MudItem xs="6" sm="3">
-        <MudCard>
-            <MudCardContent>
-                <MudText Typo="Typo.h3" Align="Align.Center">@_activeProjects</MudText>
-                <MudText Typo="Typo.subtitle1" Align="Align.Center">Aktive Baustellen</MudText>
-            </MudCardContent>
-            <MudCardActions>
-                <MudButton Href="/projects" Variant="Variant.Text" Color="Color.Primary">Anzeigen</MudButton>
-            </MudCardActions>
-        </MudCard>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudCard>
-            <MudCardContent>
-                <MudText Typo="Typo.h3" Align="Align.Center">@_totalPhotos</MudText>
-                <MudText Typo="Typo.subtitle1" Align="Align.Center">Fotos gesamt</MudText>
-            </MudCardContent>
-        </MudCard>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudCard>
-            <MudCardContent>
-                <MudText Typo="Typo.h3" Align="Align.Center">@_totalReports</MudText>
-                <MudText Typo="Typo.subtitle1" Align="Align.Center">Rapporte gesamt</MudText>
-            </MudCardContent>
-        </MudCard>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudCard>
-            <MudCardContent>
-                <MudText Typo="Typo.h3" Align="Align.Center">@_totalHours.ToString("0.#")</MudText>
-                <MudText Typo="Typo.subtitle1" Align="Align.Center">Stunden gesamt</MudText>
-            </MudCardContent>
-        </MudCard>
-    </MudItem>
-</MudGrid>
-
-@if (_recentProjects.Any())
+@if (_dashboard is null)
 {
-    <MudText Typo="Typo.h6" Class="mt-6 mb-2">Aktive Baustellen</MudText>
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
     <MudGrid>
-        @foreach (var b in _recentProjects)
-        {
-            <MudItem xs="12" sm="6" md="4">
-                <MudCard>
-                    <MudCardContent>
-                        <MudText Typo="Typo.h6">@b.Name</MudText>
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">@b.Customer — @b.Address</MudText>
-                    </MudCardContent>
-                    <MudCardActions>
-                        <MudButton Href="@($"/projects/{b.Id}")" Variant="Variant.Text" Color="Color.Primary">Öffnen</MudButton>
-                    </MudCardActions>
-                </MudCard>
-            </MudItem>
-        }
+        <MudItem xs="6" sm="3">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.h3" Align="Align.Center">@_dashboard.ActiveProjects</MudText>
+                    <MudText Typo="Typo.subtitle1" Align="Align.Center">Aktive Baustellen</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="/projects" Variant="Variant.Text" Color="Color.Primary">Anzeigen</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.h3" Align="Align.Center">@_dashboard.TotalPhotos</MudText>
+                    <MudText Typo="Typo.subtitle1" Align="Align.Center">Fotos gesamt</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.h3" Align="Align.Center">@_dashboard.TotalReports</MudText>
+                    <MudText Typo="Typo.subtitle1" Align="Align.Center">Rapporte gesamt</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.h3" Align="Align.Center">@_dashboard.TotalHours.ToString("0.#")</MudText>
+                    <MudText Typo="Typo.subtitle1" Align="Align.Center">Stunden gesamt</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
     </MudGrid>
+
+    @if (_dashboard.RecentActivities.Any())
+    {
+        <MudText Typo="Typo.h6" Class="mt-6 mb-2">Letzte Aktivitäten</MudText>
+        <MudCard>
+            <MudList T="string" Dense="true">
+                @foreach (var a in _dashboard.RecentActivities)
+                {
+                    <MudListItem Icon="@GetActivityIcon(a.Icon)">
+                        <div class="d-flex flex-column">
+                            <MudText Typo="Typo.body2">@a.Text</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @a.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm") —
+                                <MudLink Href="@($"/projects/{a.ProjectId}")">@a.ProjectName</MudLink>
+                            </MudText>
+                        </div>
+                    </MudListItem>
+                }
+            </MudList>
+        </MudCard>
+    }
+
+    @if (_dashboard.RecentProjects.Any())
+    {
+        <MudText Typo="Typo.h6" Class="mt-6 mb-2">Aktive Baustellen</MudText>
+        <MudGrid>
+            @foreach (var b in _dashboard.RecentProjects)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard>
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6">@b.Name</MudText>
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">@b.Customer — @b.Address</MudText>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton Href="@($"/projects/{b.Id}")" Variant="Variant.Text" Color="Color.Primary">Öffnen</MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
 }
 
 @code {
-    [Inject] private IProjectService ProjectService { get; set; } = null!;
-    [Inject] private IPhotoService PhotoService { get; set; } = null!;
-    [Inject] private IWorkReportService WorkReportService { get; set; } = null!;
+    [Inject] private IDashboardService DashboardService { get; set; } = null!;
 
-    private int _activeProjects;
-    private int _totalPhotos;
-    private int _totalReports;
-    private decimal _totalHours;
-    private List<ProjectDto> _recentProjects = new();
+    private DashboardDto? _dashboard;
 
     protected override async Task OnInitializedAsync()
     {
-        var all = await ProjectService.GetAllAsync();
-        _recentProjects = all.Where(b => b.Status == ProjectStatus.Active).ToList();
-        _activeProjects = _recentProjects.Count;
-
-        foreach (var b in all)
-        {
-            var photos = await PhotoService.GetByProjectAsync(b.Id);
-            _totalPhotos += photos.Count;
-
-            var reports = await WorkReportService.GetByProjectAsync(b.Id);
-            _totalReports += reports.Count;
-            _totalHours += reports.Sum(r => r.Hours);
-        }
+        _dashboard = await DashboardService.GetDashboardAsync();
     }
+
+    private static string GetActivityIcon(string icon) => icon switch
+    {
+        "PhotoCamera" => Icons.Material.Filled.PhotoCamera,
+        "Assignment" => Icons.Material.Filled.Assignment,
+        _ => Icons.Material.Filled.Info
+    };
 }

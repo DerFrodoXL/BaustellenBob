@@ -5,9 +5,15 @@
     <MudNavLink Href="/projects" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Construction">
         Baustellen
     </MudNavLink>
+    <MudNavLink Href="/quick-report" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.NoteAdd">
+        Rapport erfassen
+    </MudNavLink>
     <AuthorizeView Roles="Admin">
         <MudNavLink Href="/employees" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.People">
             Mitarbeiter
+        </MudNavLink>
+        <MudNavLink Href="/account" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Settings">
+            Konto & Plan
         </MudNavLink>
     </AuthorizeView>
 </MudNavMenu>

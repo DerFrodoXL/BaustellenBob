@@ -10,27 +10,65 @@
     Neuer Mitarbeiter
 </MudButton>
 
-<MudTable Items="_users" Hover="true" Striped="true" Dense="true" Loading="_loading">
-    <HeaderContent>
-        <MudTh>Name</MudTh>
-        <MudTh>E-Mail</MudTh>
-        <MudTh>Rolle</MudTh>
-        <MudTh>Aktionen</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd DataLabel="Name">@context.Name</MudTd>
-        <MudTd DataLabel="E-Mail">@context.Email</MudTd>
-        <MudTd DataLabel="Rolle">
-            <MudChip T="string" Size="Size.Small">@context.Role</MudChip>
-        </MudTd>
-        <MudTd>
-            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                           OnClick="@(() => EditUser(context))" aria-label="Bearbeiten" />
-            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                           OnClick="@(() => DeleteUser(context))" aria-label="Löschen" />
-        </MudTd>
-    </RowTemplate>
-</MudTable>
+@* Desktop: Table *@
+<MudHidden Breakpoint="Breakpoint.SmAndDown">
+    <MudTable Items="_users" Hover="true" Striped="true" Dense="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>E-Mail</MudTh>
+            <MudTh>Rolle</MudTh>
+            <MudTh>Aktionen</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="E-Mail">@context.Email</MudTd>
+            <MudTd DataLabel="Rolle">
+                <MudChip T="string" Size="Size.Small">@context.Role</MudChip>
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                               OnClick="@(() => EditUser(context))" aria-label="Bearbeiten" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="@(() => DeleteUser(context))" aria-label="Löschen" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudHidden>
+
+@* Mobile: Cards *@
+<MudHidden Breakpoint="Breakpoint.MdAndUp">
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudGrid>
+            @foreach (var user in _users)
+            {
+                <MudItem xs="12">
+                    <MudCard>
+                        <MudCardContent>
+                            <div class="d-flex justify-space-between align-center">
+                                <div>
+                                    <MudText Typo="Typo.h6">@user.Name</MudText>
+                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@user.Email</MudText>
+                                </div>
+                                <MudChip T="string" Size="Size.Small">@user.Role</MudChip>
+                            </div>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                           OnClick="@(() => EditUser(user))" aria-label="Bearbeiten" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           OnClick="@(() => DeleteUser(user))" aria-label="Löschen" />
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudHidden>
 
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;

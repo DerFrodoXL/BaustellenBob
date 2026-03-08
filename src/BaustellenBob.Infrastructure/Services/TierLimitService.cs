@@ -71,4 +71,11 @@ public class TierLimitService : ITierLimitService
         var limits = await GetCurrentLimitsAsync();
         return limits.PdfExport;
     }
+
+    public async Task<string> GetCurrentTierNameAsync()
+    {
+        var tenant = await _db.Tenants.FindAsync(_tenantProvider.TenantId)
+            ?? throw new InvalidOperationException("Tenant not found.");
+        return tenant.Tier.ToString();
+    }
 }
