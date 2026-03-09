@@ -3,6 +3,7 @@ using System;
 using BaustellenBob.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaustellenBob.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260309121023_AddStripeFieldsToTenant")]
+    partial class AddStripeFieldsToTenant
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -278,16 +281,11 @@ namespace BaustellenBob.Infrastructure.Data.Migrations
                     b.Property<Guid>("UploadedByUserId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("WorkReportId")
-                        .HasColumnType("uuid");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ProjectId");
 
                     b.HasIndex("UploadedByUserId");
-
-                    b.HasIndex("WorkReportId");
 
                     b.ToTable("Photos");
                 });
@@ -625,15 +623,9 @@ namespace BaustellenBob.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("BaustellenBob.Domain.Entities.WorkReport", "WorkReport")
-                        .WithMany("Photos")
-                        .HasForeignKey("WorkReportId");
-
                     b.Navigation("Project");
 
                     b.Navigation("UploadedBy");
-
-                    b.Navigation("WorkReport");
                 });
 
             modelBuilder.Entity("BaustellenBob.Domain.Entities.Project", b =>
@@ -732,11 +724,6 @@ namespace BaustellenBob.Infrastructure.Data.Migrations
                     b.Navigation("Projects");
 
                     b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("BaustellenBob.Domain.Entities.WorkReport", b =>
-                {
-                    b.Navigation("Photos");
                 });
 #pragma warning restore 612, 618
         }

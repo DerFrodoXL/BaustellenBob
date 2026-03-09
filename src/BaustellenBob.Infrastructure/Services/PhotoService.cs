@@ -36,6 +36,7 @@ public class PhotoService : IPhotoService
             {
                 Id = p.Id,
                 ProjectId = p.ProjectId,
+                WorkReportId = p.WorkReportId,
                 FilePath = p.FilePath,
                 Description = p.Description,
                 CreatedAt = p.CreatedAt,
@@ -46,7 +47,7 @@ public class PhotoService : IPhotoService
             .ToListAsync();
     }
 
-    public async Task<PhotoDto> UploadAsync(Guid projectId, string fileName, Stream fileStream, string description, double? latitude, double? longitude)
+    public async Task<PhotoDto> UploadAsync(Guid projectId, string fileName, Stream fileStream, string description, double? latitude, double? longitude, Guid? workReportId = null)
     {
         await _tierLimits.EnsureCanUploadPhotoAsync();
         var tenantId = _tenantProvider.TenantId;
@@ -65,6 +66,7 @@ public class PhotoService : IPhotoService
             TenantId = tenantId,
             ProjectId = projectId,
             UploadedByUserId = _currentUser.UserId,
+            WorkReportId = workReportId,
             FilePath = relativePath,
             FileData = fileBytes,
             FileContentType = "image/jpeg",
@@ -80,6 +82,7 @@ public class PhotoService : IPhotoService
         {
             Id = photo.Id,
             ProjectId = photo.ProjectId,
+            WorkReportId = photo.WorkReportId,
             FilePath = photo.FilePath,
             Description = photo.Description,
             CreatedAt = photo.CreatedAt,

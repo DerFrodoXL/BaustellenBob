@@ -10,17 +10,58 @@
         <MudDatePicker @bind-Date="_reportDate" Label="Datum" Required="true" Class="mb-3" />
         <MudNumericField @bind-Value="Model.Hours" Label="Stunden" Min="0.25m" Max="24m" Step="0.25m" Class="mb-3" />
         <MudTextField @bind-Value="Model.Activity" Label="Tätigkeit" Required="true" Lines="3" Class="mb-3" />
-        <MudTextField @bind-Value="Model.Material" Label="Material" Lines="2" />
+        <MudTextField @bind-Value="Model.Material" Label="Material" Lines="2" Class="mb-3" />
+
+        @* Camera photo attachment *@
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Fotos</MudText>
+        <div class="d-flex align-center gap-2 flex-wrap mb-2">
+            <InputFile id="reportCamera" OnChange="OnPhotosSelected" accept="image/*" capture="environment"
+                       multiple="true" style="display:none;" />
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.PhotoCamera"
+                       OnClick="@(() => _jsRuntime.InvokeVoidAsync("eval", "document.getElementById('reportCamera').click()"))">
+                Foto aufnehmen
+            </MudButton>
+            <InputFile id="reportGallery" OnChange="OnPhotosSelected" accept="image/*"
+                       multiple="true" style="display:none;" />
+            <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.Image"
+                       OnClick="@(() => _jsRuntime.InvokeVoidAsync("eval", "document.getElementById('reportGallery').click()"))">
+                Aus Galerie
+            </MudButton>
+        </div>
+        @if (_pendingPhotos.Count > 0)
+        {
+            <MudGrid Class="mb-2">
+                @foreach (var photo in _pendingPhotos)
+                {
+                    <MudItem xs="4" sm="3">
+                        <MudCard Outlined="true" Style="position:relative;">
+                            <MudImage Src="@photo.Preview" Alt="Vorschau" Style="width:100%;height:80px;object-fit:cover;" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                           Style="position:absolute;top:0;right:0;background:rgba(0,0,0,.5);color:white;"
+                                           OnClick="@(() => _pendingPhotos.Remove(photo))" />
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary mb-2">@_pendingPhotos.Count Foto(s) werden beim Speichern hochgeladen.</MudText>
+        }
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Abbrechen</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">Speichern</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="_saving">
+            @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" /> }
+            else { <text>Speichern</text> }
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Inject] private IWorkReportService WorkReportService { get; set; } = null!;
+    [Inject] private IPhotoService PhotoService { get; set; } = null!;
+    [Inject] private IJSRuntime _jsRuntime { get; set; } = null!;
 
     [Parameter] public Guid ProjectId { get; set; }
     [Parameter] public WorkReportDto? Existing { get; set; }
@@ -28,7 +69,9 @@
     private WorkReportDto Model { get; set; } = new() { Hours = 8 };
     private DateTime? _reportDate = DateTime.Today;
     private bool _isEdit;
+    private bool _saving;
     private string? _error;
+    private List<PendingPhoto> _pendingPhotos = new();
 
     protected override void OnParametersSet()
     {
@@ -48,23 +91,68 @@
         }
     }
 
+    private async Task OnPhotosSelected(InputFileChangeEventArgs e)
+    {
+        foreach (var file in e.GetMultipleFiles(10))
+        {
+            if (file.Size > 10 * 1024 * 1024) continue; // skip files > 10 MB
+            using var ms = new MemoryStream();
+            await file.OpenReadStream(10 * 1024 * 1024).CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            var preview = $"data:{file.ContentType};base64,{Convert.ToBase64String(bytes)}";
+            _pendingPhotos.Add(new PendingPhoto(file, preview));
+        }
+    }
+
     private async Task Save()
     {
         _error = null;
+        _saving = true;
         try
         {
             Model.ReportDate = _reportDate ?? DateTime.Today;
+            WorkReportDto saved;
             if (_isEdit)
+            {
                 await WorkReportService.UpdateAsync(Model);
+                saved = Model;
+            }
             else
-                await WorkReportService.CreateAsync(ProjectId, Model);
+            {
+                saved = await WorkReportService.CreateAsync(ProjectId, Model);
+            }
+
+            // Upload attached photos linked to the report
+            foreach (var pending in _pendingPhotos)
+            {
+                using var stream = pending.File.OpenReadStream(10 * 1024 * 1024);
+                await PhotoService.UploadAsync(
+                    ProjectId,
+                    pending.File.Name,
+                    stream,
+                    description: $"Rapport {saved.ReportDate:dd.MM.yyyy}",
+                    latitude: null,
+                    longitude: null,
+                    workReportId: saved.Id);
+            }
+
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (TierLimitExceededException ex)
         {
             _error = ex.Message;
         }
+        catch (Exception ex)
+        {
+            _error = $"Fehler: {ex.Message}";
+        }
+        finally
+        {
+            _saving = false;
+        }
     }
 
     private void Cancel() => MudDialog.Cancel();
+
+    private record PendingPhoto(IBrowserFile File, string Preview);
 }

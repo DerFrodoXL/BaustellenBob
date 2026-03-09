@@ -37,6 +37,8 @@ public class AppDbContext : DbContext
             e.HasKey(t => t.Id);
             e.Property(t => t.Name).HasMaxLength(200).IsRequired();
             e.Property(t => t.LogoContentType).HasMaxLength(100);
+            e.Property(t => t.StripeCustomerId).HasMaxLength(100);
+            e.Property(t => t.StripeSubscriptionId).HasMaxLength(100);
         });
 
         // User
@@ -85,6 +87,7 @@ public class AppDbContext : DbContext
             e.Property(p => p.Description).HasMaxLength(1000);
             e.HasOne(p => p.Project).WithMany(b => b.Photos).HasForeignKey(p => p.ProjectId);
             e.HasOne(p => p.UploadedBy).WithMany().HasForeignKey(p => p.UploadedByUserId);
+            e.HasOne(p => p.WorkReport).WithMany(w => w.Photos).HasForeignKey(p => p.WorkReportId).IsRequired(false);
             e.HasQueryFilter(p => p.TenantId == _tenantProvider.TenantId);
         });
 
@@ -169,13 +172,14 @@ public class AppDbContext : DbContext
             Tier = Tier.Starter
         });
 
+        // Demo password: demo1234
         builder.Entity<User>().HasData(new User
         {
             Id = userId,
             TenantId = tenantId,
             Name = "Demo Mitarbeiter",
             Email = "demo@baustellenbob.de",
-            PasswordHash = string.Empty,
+            PasswordHash = "$2a$11$HTyL8uikPhqN8TaOv73Bw.E4xxWRLfQsj.kPsVIaeUZyv351p0c8a",
             Role = UserRole.Admin
         });
 
@@ -202,13 +206,14 @@ public class AppDbContext : DbContext
             Tier = Tier.Starter
         });
 
+        // Demo password: demo1234
         builder.Entity<User>().HasData(new User
         {
             Id = user2Id,
             TenantId = tenant2Id,
             Name = "Hans Schmidt",
             Email = "hans@sanitaer-schmidt.de",
-            PasswordHash = string.Empty,
+            PasswordHash = "$2a$11$HTyL8uikPhqN8TaOv73Bw.E4xxWRLfQsj.kPsVIaeUZyv351p0c8a",
             Role = UserRole.Admin
         });
 

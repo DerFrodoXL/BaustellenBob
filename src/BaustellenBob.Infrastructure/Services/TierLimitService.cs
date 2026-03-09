@@ -27,19 +27,21 @@ public class TierLimitService : ITierLimitService
     public async Task<TierUsage> GetUsageAsync()
     {
         var tenantId = _tenantProvider.TenantId;
-        var projects = await _db.Projects.CountAsync();
+        var activeProjects = await _db.Projects.CountAsync(p =>
+            p.Status == Domain.Enums.ProjectStatus.Active || p.Status == Domain.Enums.ProjectStatus.Paused);
         var employees = await _db.Users.CountAsync();
         var photos = await _db.Photos.CountAsync();
         var reports = await _db.WorkReports.CountAsync();
-        return new TierUsage(projects, employees, photos, reports);
+        return new TierUsage(activeProjects, employees, photos, reports);
     }
 
     public async Task EnsureCanCreateProjectAsync()
     {
         var limits = await GetCurrentLimitsAsync();
-        var count = await _db.Projects.CountAsync();
-        if (count >= limits.MaxProjects)
-            throw new TierLimitExceededException("Baustellen", limits.MaxProjects);
+        var activeCount = await _db.Projects.CountAsync(p =>
+            p.Status == Domain.Enums.ProjectStatus.Active || p.Status == Domain.Enums.ProjectStatus.Paused);
+        if (activeCount >= limits.MaxActiveProjects)
+            throw new TierLimitExceededException("aktive Baustellen", limits.MaxActiveProjects);
     }
 
     public async Task EnsureCanCreateEmployeeAsync()

@@ -2,147 +2,280 @@
 @attribute [Authorize(Roles = "Admin")]
 @using Microsoft.AspNetCore.Components.Forms
 
-<PageTitle>Konto & Plan</PageTitle>
+<PageTitle>Konto & Abo</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Konto & Plan</MudText>
+<MudText Typo="Typo.h4" Class="mb-4">Konto & Abo</MudText>
 
-@if (_limits is null || _usage is null)
+@if (_successMessage is not null)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <MudAlert Severity="Severity.Success" Class="mb-3">@_successMessage</MudAlert>
 }
-else
+@if (_canceledMessage is not null)
 {
-    <MudGrid>
-        @* Company Logo Card *@
-        <MudItem xs="12" md="6">
-            <MudCard>
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Firmenlogo</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <div class="d-flex align-center gap-4 mb-3">
-                        @if (!string.IsNullOrEmpty(_previewUrl))
-                        {
-                            <MudImage Src="@_previewUrl" Alt="Firmenlogo" Style="max-height:80px;max-width:200px;object-fit:contain;" />
-                        }
-                        else if (!string.IsNullOrEmpty(_logoPath))
-                        {
-                            <MudImage Src="@($"/uploads/{_logoPath}")" Alt="Firmenlogo" Style="max-height:80px;max-width:200px;object-fit:contain;" />
-                        }
-                        else
-                        {
-                            <MudIcon Icon="@Icons.Material.Filled.Business" Style="font-size:64px;" Class="mud-text-secondary" />
-                        }
-                    </div>
-                    @if (_logoError is not null)
-                    {
-                        <MudAlert Severity="Severity.Error" Class="mb-2">@_logoError</MudAlert>
-                    }
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary mb-2">PNG, JPG oder WebP — max. 2 MB. Wird in der App-Leiste angezeigt.</MudText>
-                    <InputFile id="logoInput" OnChange="OnLogoSelected" accept="image/*" style="display:none;" />
-                    <MudButton Variant="Variant.Outlined" Size="Size.Small"
-                               OnClick="@(() => _jsRuntime.InvokeVoidAsync("eval", "document.getElementById('logoInput').click()"))">
-                        Logo auswählen
-                    </MudButton>
-                    @if (_pendingLogo is not null)
-                    {
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                                   Class="ml-2" OnClick="SaveLogo" Disabled="_savingLogo">
-                            @(_savingLogo ? "Speichern..." : "Speichern")
-                        </MudButton>
-                    }
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-        <MudItem xs="12" md="6">
-            <MudCard>
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Aktueller Plan</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudChip T="string" Color="Color.Primary" Size="Size.Large">@_tierName</MudChip>
-                    <MudText Typo="Typo.body2" Class="mt-3 mud-text-secondary">
-                        @GetTierDescription()
-                    </MudText>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+    <MudAlert Severity="Severity.Warning" Class="mb-3">@_canceledMessage</MudAlert>
+}
 
-        <MudItem xs="12" md="6">
-            <MudCard>
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Features</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudSimpleTable Dense="true" Hover="true">
-                        <tbody>
-                            <tr>
-                                <td>PDF Export</td>
-                                <td>
-                                    @if (_limits.PdfExport)
-                                    {
-                                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
-                                    }
-                                    else
-                                    {
-                                        <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Small" />
-                                    }
-                                </td>
-                            </tr>
-                        </tbody>
-                    </MudSimpleTable>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+    @* ──── Tab 1: Konto ──── *@
+    <MudTabPanel Text="Konto" Icon="@Icons.Material.Filled.Business">
+        @if (_limits is null || _usage is null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            <MudGrid>
+                @* Company Logo *@
+                <MudItem xs="12" md="6">
+                    <MudCard>
+                        <MudCardHeader>
+                            <MudText Typo="Typo.h6">Firmenlogo</MudText>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <div class="d-flex align-center gap-4 mb-3">
+                                @if (!string.IsNullOrEmpty(_previewUrl))
+                                {
+                                    <MudImage Src="@_previewUrl" Alt="Firmenlogo" Style="max-height:80px;max-width:200px;object-fit:contain;" />
+                                }
+                                else if (!string.IsNullOrEmpty(_logoPath))
+                                {
+                                    <MudImage Src="@($"/uploads/{_logoPath}")" Alt="Firmenlogo" Style="max-height:80px;max-width:200px;object-fit:contain;" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Business" Style="font-size:64px;" Class="mud-text-secondary" />
+                                }
+                            </div>
+                            @if (_logoError is not null)
+                            {
+                                <MudAlert Severity="Severity.Error" Class="mb-2">@_logoError</MudAlert>
+                            }
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary mb-2">PNG, JPG oder WebP — max. 2 MB. Wird in der App-Leiste angezeigt.</MudText>
+                            <InputFile id="logoInput" OnChange="OnLogoSelected" accept="image/*" style="display:none;" />
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                                       OnClick="@(() => _jsRuntime.InvokeVoidAsync("eval", "document.getElementById('logoInput').click()"))">
+                                Logo auswählen
+                            </MudButton>
+                            @if (_pendingLogo is not null)
+                            {
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                           Class="ml-2" OnClick="SaveLogo" Disabled="_savingLogo">
+                                    @(_savingLogo ? "Speichern..." : "Speichern")
+                                </MudButton>
+                            }
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
 
-        <MudItem xs="12">
-            <MudCard>
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Verbrauch</MudText>
-                </MudCardHeader>
+                @* Feature table *@
+                <MudItem xs="12" md="6">
+                    <MudCard>
+                        <MudCardHeader>
+                            <MudText Typo="Typo.h6">Features</MudText>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudSimpleTable Dense="true" Hover="true">
+                                <tbody>
+                                    <tr>
+                                        <td>PDF Export</td>
+                                        <td>
+                                            @if (_limits.PdfExport)
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                                            }
+                                            else
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Small" />
+                                            }
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </MudSimpleTable>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                @* Usage *@
+                <MudItem xs="12">
+                    <MudCard>
+                        <MudCardHeader>
+                            <MudText Typo="Typo.h6">Verbrauch</MudText>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudGrid>
+                                <MudItem xs="12" sm="6" md="3">
+                                    <UsageBar Label="Aktive Baustellen" Current="_usage.Projects" Max="_limits.MaxActiveProjects" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6" md="3">
+                                    <UsageBar Label="Mitarbeiter" Current="_usage.Employees" Max="_limits.MaxEmployees" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6" md="3">
+                                    <UsageBar Label="Fotos" Current="_usage.Photos" Max="_limits.MaxPhotos" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6" md="3">
+                                    <UsageBar Label="Rapporte" Current="_usage.Reports" Max="_limits.MaxReports" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+        }
+    </MudTabPanel>
+
+    @* ──── Tab 2: Abo & Tarife ──── *@
+    <MudTabPanel Text="Abo & Tarife" Icon="@Icons.Material.Filled.CreditCard">
+        @if (_stripeLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (_stripeInfo is not null)
+        {
+            <MudCard Class="mb-4">
                 <MudCardContent>
                     <MudGrid>
-                        <MudItem xs="12" sm="6" md="3">
-                            <UsageBar Label="Baustellen" Current="_usage.Projects" Max="_limits.MaxProjects" />
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">Aktueller Tarif</MudText>
+                            <MudText Typo="Typo.h6">
+                                <MudChip T="string" Color="@TierColor(_stripeInfo.CurrentTier)" Size="Size.Small">@_stripeInfo.CurrentTier</MudChip>
+                            </MudText>
                         </MudItem>
-                        <MudItem xs="12" sm="6" md="3">
-                            <UsageBar Label="Mitarbeiter" Current="_usage.Employees" Max="_limits.MaxEmployees" />
+                        <MudItem xs="12" sm="6">
+                            @if (_stripeInfo.Status is not null)
+                            {
+                                <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">Abo-Status</MudText>
+                                <MudText Typo="Typo.body1">@TranslateStatus(_stripeInfo.Status)</MudText>
+                            }
                         </MudItem>
-                        <MudItem xs="12" sm="6" md="3">
-                            <UsageBar Label="Fotos" Current="_usage.Photos" Max="_limits.MaxPhotos" />
-                        </MudItem>
-                        <MudItem xs="12" sm="6" md="3">
-                            <UsageBar Label="Rapporte" Current="_usage.Reports" Max="_limits.MaxReports" />
-                        </MudItem>
+                        @if (_stripeInfo.CurrentPeriodEnd.HasValue)
+                        {
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">Nächste Abrechnung</MudText>
+                                <MudText Typo="Typo.body1">@_stripeInfo.CurrentPeriodEnd.Value.ToLocalTime().ToString("dd.MM.yyyy")</MudText>
+                            </MudItem>
+                        }
                     </MudGrid>
                 </MudCardContent>
+                @if (_stripeInfo.CanManage)
+                {
+                    <MudCardActions>
+                        <form method="post" action="/api/stripe/portal">
+                            <AntiforgeryToken />
+                            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Outlined" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Settings">
+                                Abo im Stripe Portal verwalten
+                            </MudButton>
+                        </form>
+                    </MudCardActions>
+                }
             </MudCard>
-        </MudItem>
-    </MudGrid>
-}
+
+            <MudText Typo="Typo.h6" Class="mb-3">Verfügbare Tarife</MudText>
+
+            <MudGrid>
+                @foreach (var plan in _plans)
+                {
+                    var isCurrent = plan.Tier == _stripeInfo.CurrentTier;
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Outlined="true" Style="@(isCurrent ? "border:2px solid var(--mud-palette-primary);" : "")">
+                            <MudCardHeader>
+                                <MudText Typo="Typo.h6" Align="Align.Center" Style="width:100%">@plan.Name</MudText>
+                            </MudCardHeader>
+                            <MudCardContent Style="text-align:center;">
+                                <MudText Typo="Typo.h4" Color="Color.Primary">@plan.Price</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">pro Monat</MudText>
+                                <MudDivider Class="my-2" />
+                                <MudText Typo="Typo.body2">@plan.Baustellen aktive Baustellen</MudText>
+                                <MudText Typo="Typo.body2">@plan.Mitarbeiter Mitarbeiter</MudText>
+                                <MudText Typo="Typo.body2">@plan.Fotos Fotos</MudText>
+                                <MudText Typo="Typo.body2">PDF Export: @(plan.PdfExport ? "Ja" : "Nein")</MudText>
+                            </MudCardContent>
+                            <MudCardActions Style="justify-content:center;">
+                                @if (isCurrent)
+                                {
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="true">
+                                        Aktueller Tarif
+                                    </MudButton>
+                                }
+                                else if (plan.Tier == BaustellenBob.Domain.Enums.Tier.Free)
+                                {
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Kostenlos</MudText>
+                                }
+                                else
+                                {
+                                    <form method="post" action="/api/stripe/checkout">
+                                        <AntiforgeryToken />
+                                        <input type="hidden" name="tier" value="@plan.Tier" />
+                                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">
+                                            Auswählen
+                                        </MudButton>
+                                    </form>
+                                }
+                            </MudCardActions>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    </MudTabPanel>
+</MudTabs>
 
 @code {
     [Inject] private ITierLimitService TierLimitService { get; set; } = null!;
     [Inject] private ITenantService TenantService { get; set; } = null!;
+    [Inject] private IStripeService StripeService { get; set; } = null!;
     [Inject] private IJSRuntime _jsRuntime { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
+    // Konto state
     private TierLimit? _limits;
     private TierUsage? _usage;
-    private string _tierName = string.Empty;
-
     private string? _logoPath;
     private string? _previewUrl;
     private IBrowserFile? _pendingLogo;
     private bool _savingLogo;
     private string? _logoError;
 
+    // Stripe state
+    private SubscriptionInfo? _stripeInfo;
+    private bool _stripeLoading = true;
+    private string? _successMessage;
+    private string? _canceledMessage;
+
+    [SupplyParameterFromQuery(Name = "success")]
+    public string? SuccessParam { get; set; }
+
+    [SupplyParameterFromQuery(Name = "canceled")]
+    public string? CanceledParam { get; set; }
+
+    private static readonly PlanDisplay[] _plans =
+    {
+        new("Free",     "0 €",  BaustellenBob.Domain.Enums.Tier.Free,     "1",  "1",  "20",     false),
+        new("Starter",  "19 €", BaustellenBob.Domain.Enums.Tier.Starter,  "10", "5",  "1.000",  true),
+        new("Pro",      "39 €", BaustellenBob.Domain.Enums.Tier.Pro,      "50", "20", "10.000", true),
+        new("Business", "79 €", BaustellenBob.Domain.Enums.Tier.Business, "∞",  "∞",  "∞",      true),
+    };
+
     protected override async Task OnInitializedAsync()
     {
+        _successMessage = SuccessParam == "1" ? "Abo erfolgreich abgeschlossen! Dein Tarif wird in Kürze aktualisiert." : null;
+        _canceledMessage = CanceledParam == "1" ? "Checkout abgebrochen." : null;
+
+        // Load account data
         _limits = await TierLimitService.GetCurrentLimitsAsync();
         _usage = await TierLimitService.GetUsageAsync();
-        _tierName = await TierLimitService.GetCurrentTierNameAsync();
         _logoPath = await TenantService.GetLogoPathAsync();
+
+        // Load Stripe data
+        try
+        {
+            _stripeInfo = await StripeService.GetSubscriptionInfoAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Fehler beim Laden der Abo-Daten: {ex.Message}", Severity.Error);
+        }
+        _stripeLoading = false;
     }
 
     private async Task OnLogoSelected(InputFileChangeEventArgs e)
@@ -185,12 +318,24 @@ else
         }
     }
 
-    private string GetTierDescription() => _tierName switch
+    private static Color TierColor(BaustellenBob.Domain.Enums.Tier tier) => tier switch
     {
-        "Free" => "Kostenlos testen — begrenzte Funktionen.",
-        "Starter" => "Für kleine Handwerksbetriebe — 19 €/Monat",
-        "Pro" => "Für wachsende Firmen — 39 €/Monat",
-        "Business" => "Für größere Teams — 79 €/Monat",
-        _ => ""
+        BaustellenBob.Domain.Enums.Tier.Free => Color.Default,
+        BaustellenBob.Domain.Enums.Tier.Starter => Color.Info,
+        BaustellenBob.Domain.Enums.Tier.Pro => Color.Success,
+        BaustellenBob.Domain.Enums.Tier.Business => Color.Warning,
+        _ => Color.Default
     };
+
+    private static string TranslateStatus(string status) => status switch
+    {
+        "active" => "Aktiv",
+        "past_due" => "Zahlung überfällig",
+        "canceled" => "Gekündigt",
+        "trialing" => "Testphase",
+        "incomplete" => "Unvollständig",
+        _ => status
+    };
+
+    private record PlanDisplay(string Name, string Price, BaustellenBob.Domain.Enums.Tier Tier, string Baustellen, string Mitarbeiter, string Fotos, bool PdfExport);
 }

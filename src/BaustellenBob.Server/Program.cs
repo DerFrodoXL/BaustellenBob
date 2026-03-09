@@ -96,6 +96,7 @@ builder.Services.AddScoped<ITenantService>(sp =>
     new TenantService(
         sp.GetRequiredService<AppDbContext>(),
         sp.GetRequiredService<ITenantProvider>()));
+builder.Services.AddScoped<IStripeService, StripeService>();
 
 // QuestPDF Community license
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
@@ -346,6 +347,41 @@ api.MapPost("/projects/{id:guid}/reports", async (Guid id, BaustellenBob.Applica
         return Results.BadRequest(new { error = ex.Message });
     }
 });
+
+// ---- Stripe Checkout ----
+app.MapPost("/api/stripe/checkout", async (HttpContext ctx, IStripeService stripeService) =>
+{
+    var form = await ctx.Request.ReadFormAsync();
+    var tierStr = form["tier"].ToString();
+    if (!Enum.TryParse<BaustellenBob.Domain.Enums.Tier>(tierStr, out var tier))
+        return Results.BadRequest("Ungültiger Tarif.");
+
+    var baseUrl = $"{ctx.Request.Scheme}://{ctx.Request.Host}";
+    var url = await stripeService.CreateCheckoutSessionAsync(
+        tier,
+        successUrl: $"{baseUrl}/account?success=1",
+        cancelUrl: $"{baseUrl}/account?canceled=1");
+
+    return Results.Redirect(url);
+}).RequireAuthorization();
+
+// ---- Stripe Billing Portal ----
+app.MapPost("/api/stripe/portal", async (HttpContext ctx, IStripeService stripeService) =>
+{
+    var baseUrl = $"{ctx.Request.Scheme}://{ctx.Request.Host}";
+    var url = await stripeService.CreateBillingPortalSessionAsync($"{baseUrl}/account");
+    return Results.Redirect(url);
+}).RequireAuthorization();
+
+// ---- Stripe Webhook (no auth — Stripe signs it) ----
+app.MapPost("/api/stripe/webhook", async (HttpContext ctx, IStripeService stripeService) =>
+{
+    var json = await new StreamReader(ctx.Request.Body).ReadToEndAsync();
+    var signature = ctx.Request.Headers["Stripe-Signature"].FirstOrDefault() ?? string.Empty;
+
+    var handled = await stripeService.HandleWebhookAsync(json, signature);
+    return handled ? Results.Ok() : Results.BadRequest();
+}).AllowAnonymous();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

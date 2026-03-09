@@ -10,4 +10,5 @@ public class WorkReportDto
     public string Activity { get; set; } = string.Empty;
     public string Material { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+    public int PhotoCount { get; set; }
 }

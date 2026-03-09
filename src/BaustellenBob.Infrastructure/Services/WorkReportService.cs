@@ -36,7 +36,8 @@ public class WorkReportService : IWorkReportService
                 Hours = w.Hours,
                 Activity = w.Activity,
                 Material = w.Material,
-                CreatedAt = w.CreatedAt
+                CreatedAt = w.CreatedAt,
+                PhotoCount = w.Photos.Count
             })
             .ToListAsync();
     }

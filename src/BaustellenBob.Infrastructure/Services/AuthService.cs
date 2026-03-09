@@ -24,12 +24,12 @@ public class AuthService : IAuthService
         if (user is null)
             return null;
 
-        // Empty hash = demo user with any password (dev only), otherwise verify BCrypt
-        if (!string.IsNullOrEmpty(user.PasswordHash))
-        {
-            if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-                return null;
-        }
+        // Accounts without a password hash cannot log in (prevents open-access demo accounts in production)
+        if (string.IsNullOrEmpty(user.PasswordHash))
+            return null;
+
+        if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+            return null;
 
         return new AuthResult
         {

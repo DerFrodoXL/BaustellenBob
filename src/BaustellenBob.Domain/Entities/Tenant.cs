@@ -12,6 +12,10 @@ public class Tenant
     public byte[]? LogoData { get; set; }
     public string? LogoContentType { get; set; }
 
+    // Stripe
+    public string? StripeCustomerId { get; set; }
+    public string? StripeSubscriptionId { get; set; }
+
     public ICollection<User> Users { get; set; } = new List<User>();
     public ICollection<Project> Projects { get; set; } = new List<Project>();
     public ICollection<Customer> Customers { get; set; } = new List<Customer>();

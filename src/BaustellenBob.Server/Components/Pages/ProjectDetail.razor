@@ -121,6 +121,7 @@ else
                             <MudTh>Stunden</MudTh>
                             <MudTh>Tätigkeit</MudTh>
                             <MudTh>Material</MudTh>
+                            <MudTh>Fotos</MudTh>
                             <MudTh>Aktionen</MudTh>
                         </HeaderContent>
                         <RowTemplate>
@@ -129,6 +130,14 @@ else
                             <MudTd DataLabel="Stunden">@context.Hours h</MudTd>
                             <MudTd DataLabel="Tätigkeit">@context.Activity</MudTd>
                             <MudTd DataLabel="Material">@context.Material</MudTd>
+                            <MudTd DataLabel="Fotos">
+                                @if (context.PhotoCount > 0)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.CameraAlt" Color="Color.Info">
+                                        @context.PhotoCount
+                                    </MudChip>
+                                }
+                            </MudTd>
                             <MudTd>
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
                                                OnClick="@(() => EditReport(context))" aria-label="Bearbeiten" />

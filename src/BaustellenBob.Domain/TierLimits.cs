@@ -2,7 +2,7 @@ using BaustellenBob.Domain.Enums;
 
 namespace BaustellenBob.Domain;
 
-public record TierLimit(int MaxProjects, int MaxEmployees, int MaxPhotos, int MaxReports, bool PdfExport);
+public record TierLimit(int MaxActiveProjects, int MaxEmployees, int MaxPhotos, int MaxReports, bool PdfExport);
 
 public static class TierLimits
 {

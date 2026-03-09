@@ -37,6 +37,45 @@
         <MudItem xs="12">
             <MudTextField @bind-Value="_material" Label="Material (optional)" />
         </MudItem>
+
+        @* Photo attachment *@
+        <MudItem xs="12">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Fotos anhängen</MudText>
+            <div class="d-flex align-center gap-2 flex-wrap mb-2">
+                <InputFile id="qrCamera" OnChange="OnPhotosSelected" accept="image/*" capture="environment"
+                           multiple="true" style="display:none;" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.PhotoCamera"
+                           OnClick="@(() => JS.InvokeVoidAsync("eval", "document.getElementById('qrCamera').click()"))">
+                    Foto aufnehmen
+                </MudButton>
+                <InputFile id="qrGallery" OnChange="OnPhotosSelected" accept="image/*"
+                           multiple="true" style="display:none;" />
+                <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Image"
+                           OnClick="@(() => JS.InvokeVoidAsync("eval", "document.getElementById('qrGallery').click()"))">
+                    Aus Galerie
+                </MudButton>
+            </div>
+            @if (_pendingPhotos.Count > 0)
+            {
+                <MudGrid Class="mb-2">
+                    @foreach (var photo in _pendingPhotos)
+                    {
+                        <MudItem xs="4" sm="2">
+                            <MudCard Outlined="true" Style="position:relative;">
+                                <MudImage Src="@photo.Preview" Alt="Vorschau" Style="width:100%;height:80px;object-fit:cover;" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                               Style="position:absolute;top:0;right:0;background:rgba(0,0,0,.5);color:white;"
+                                               OnClick="@(() => _pendingPhotos.Remove(photo))" />
+                            </MudCard>
+                        </MudItem>
+                    }
+                </MudGrid>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@_pendingPhotos.Count Foto(s) werden mit dem Rapport gespeichert.</MudText>
+            }
+        </MudItem>
+
         <MudItem xs="12">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
                        OnClick="Save" Disabled="@_saving"
@@ -51,7 +90,9 @@
 @code {
     [Inject] private IProjectService ProjectService { get; set; } = null!;
     [Inject] private IWorkReportService WorkReportService { get; set; } = null!;
+    [Inject] private IPhotoService PhotoService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IJSRuntime JS { get; set; } = null!;
 
     private List<ProjectDto> _projects = new();
     private Guid? _selectedProjectId;
@@ -62,11 +103,25 @@
     private bool _saving;
     private bool _success;
     private string? _error;
+    private List<PendingPhoto> _pendingPhotos = new();
 
     protected override async Task OnInitializedAsync()
     {
         var all = await ProjectService.GetAllAsync();
         _projects = all.Where(p => p.Status == ProjectStatus.Active).ToList();
+    }
+
+    private async Task OnPhotosSelected(InputFileChangeEventArgs e)
+    {
+        foreach (var file in e.GetMultipleFiles(10))
+        {
+            if (file.Size > 10 * 1024 * 1024) continue;
+            using var ms = new MemoryStream();
+            await file.OpenReadStream(10 * 1024 * 1024).CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            var preview = $"data:{file.ContentType};base64,{Convert.ToBase64String(bytes)}";
+            _pendingPhotos.Add(new PendingPhoto(file, preview));
+        }
     }
 
     private async Task Save()
@@ -95,15 +150,31 @@
                 Activity = _activity,
                 Material = _material
             };
-            await WorkReportService.CreateAsync(_selectedProjectId.Value, dto);
+            var saved = await WorkReportService.CreateAsync(_selectedProjectId.Value, dto);
+
+            // Upload attached photos linked to report
+            foreach (var pending in _pendingPhotos)
+            {
+                using var stream = pending.File.OpenReadStream(10 * 1024 * 1024);
+                await PhotoService.UploadAsync(
+                    _selectedProjectId.Value,
+                    pending.File.Name,
+                    stream,
+                    description: $"Rapport {saved.ReportDate:dd.MM.yyyy}",
+                    latitude: null,
+                    longitude: null,
+                    workReportId: saved.Id);
+            }
+
             _success = true;
-            Snackbar.Add("Rapport gespeichert", Severity.Success);
+            Snackbar.Add($"Rapport gespeichert{(_pendingPhotos.Count > 0 ? $" mit {_pendingPhotos.Count} Foto(s)" : "")}", Severity.Success);
 
             // Reset form for next entry but keep project selection
             _activity = string.Empty;
             _material = string.Empty;
             _hours = 8;
             _reportDate = DateTime.Today;
+            _pendingPhotos.Clear();
         }
         catch (TierLimitExceededException ex)
         {
@@ -118,4 +189,6 @@
             _saving = false;
         }
     }
+
+    private record PendingPhoto(IBrowserFile File, string Preview);
 }
