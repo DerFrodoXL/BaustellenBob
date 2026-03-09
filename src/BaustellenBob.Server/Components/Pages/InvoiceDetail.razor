@@ -92,10 +92,17 @@
                 </RowTemplate>
             </MudTable>
 
-            <MudButton Class="mt-2" Variant="Variant.Text" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add" OnClick="AddItem">
-                Position hinzufügen
-            </MudButton>
+            <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                <MudButton Class="mt-2" Variant="Variant.Text" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddItem">
+                    Position hinzufügen
+                </MudButton>
+            </MudHidden>
+            <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                <MudTooltip Text="Position hinzufügen">
+                    <MudIconButton Class="mt-2" Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="AddItem" />
+                </MudTooltip>
+            </MudHidden>
 
             <MudDivider Class="my-3" />
             <MudGrid>
@@ -115,13 +122,30 @@
 
         <MudGrid>
             <MudItem xs="12" Class="d-flex gap-2">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save"
-                           StartIcon="@Icons.Material.Filled.Save">Speichern</MudButton>
-                <MudButton Variant="Variant.Outlined" OnClick="OpenPdfAsync"
-                           StartIcon="@Icons.Material.Filled.PictureAsPdf">PDF herunterladen</MudButton>
+                <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save"
+                               StartIcon="@Icons.Material.Filled.Save">Speichern</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="OpenPdfAsync"
+                               StartIcon="@Icons.Material.Filled.PictureAsPdf">PDF herunterladen</MudButton>
+                </MudHidden>
+                <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                    <MudTooltip Text="Speichern">
+                        <MudIconButton Icon="@Icons.Material.Filled.Save" Color="Color.Primary" OnClick="Save" />
+                    </MudTooltip>
+                    <MudTooltip Text="PDF herunterladen">
+                        <MudIconButton Icon="@Icons.Material.Filled.PictureAsPdf" OnClick="OpenPdfAsync" />
+                    </MudTooltip>
+                </MudHidden>
                 <MudSpacer />
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="Delete"
-                           StartIcon="@Icons.Material.Filled.Delete">Löschen</MudButton>
+                <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="Delete"
+                               StartIcon="@Icons.Material.Filled.Delete">Löschen</MudButton>
+                </MudHidden>
+                <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                    <MudTooltip Text="Löschen">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="Delete" />
+                    </MudTooltip>
+                </MudHidden>
             </MudItem>
         </MudGrid>
     }
