@@ -15,6 +15,7 @@ public class Tenant
     // Stripe
     public string? StripeCustomerId { get; set; }
     public string? StripeSubscriptionId { get; set; }
+    public string CurrencyCode { get; set; } = "EUR";
 
     public ICollection<User> Users { get; set; } = new List<User>();
     public ICollection<Project> Projects { get; set; } = new List<Project>();

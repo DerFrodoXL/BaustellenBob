@@ -25,6 +25,26 @@ public class TenantService : ITenantService
         return tenant?.LogoPath;
     }
 
+    public async Task<string> GetCurrencyCodeAsync()
+    {
+        var tenant = await _db.Tenants
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == _tenantProvider.TenantId);
+
+        return NormalizeCurrencyCode(tenant?.CurrencyCode);
+    }
+
+    public async Task SetCurrencyCodeAsync(string currencyCode)
+    {
+        var normalized = NormalizeCurrencyCode(currencyCode);
+
+        var tenant = await _db.Tenants.FindAsync(_tenantProvider.TenantId)
+            ?? throw new InvalidOperationException("Tenant nicht gefunden.");
+
+        tenant.CurrencyCode = normalized;
+        await _db.SaveChangesAsync();
+    }
+
     public async Task<string> UploadLogoAsync(string fileName, Stream stream)
     {
         var tenantId = _tenantProvider.TenantId;
@@ -42,5 +62,14 @@ public class TenantService : ITenantService
         await _db.SaveChangesAsync();
 
         return relativePath;
+    }
+
+    private static string NormalizeCurrencyCode(string? currencyCode)
+    {
+        var code = (currencyCode ?? string.Empty).Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(code))
+            return "EUR";
+
+        return code.Length > 3 ? code[..3] : code;
     }
 }

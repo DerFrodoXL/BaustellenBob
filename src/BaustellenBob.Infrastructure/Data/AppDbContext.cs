@@ -39,6 +39,7 @@ public class AppDbContext : DbContext
             e.Property(t => t.LogoContentType).HasMaxLength(100);
             e.Property(t => t.StripeCustomerId).HasMaxLength(100);
             e.Property(t => t.StripeSubscriptionId).HasMaxLength(100);
+            e.Property(t => t.CurrencyCode).HasMaxLength(3).IsRequired().HasDefaultValue("EUR");
         });
 
         // User
@@ -170,7 +171,8 @@ public class AppDbContext : DbContext
             Id = tenantId,
             Name = "Demo Handwerk GmbH",
             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-            Tier = Tier.Starter
+            Tier = Tier.Starter,
+            CurrencyCode = "EUR"
         });
 
         // Demo password: demo1234
@@ -204,7 +206,8 @@ public class AppDbContext : DbContext
             Id = tenant2Id,
             Name = "Sanitär Schmidt OHG",
             CreatedAt = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc),
-            Tier = Tier.Starter
+            Tier = Tier.Starter,
+            CurrencyCode = "EUR"
         });
 
         // Demo password: demo1234

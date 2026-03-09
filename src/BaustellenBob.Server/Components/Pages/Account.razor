@@ -95,6 +95,30 @@
                     </MudCard>
                 </MudItem>
 
+                <MudItem xs="12" md="6">
+                    <MudCard>
+                        <MudCardHeader>
+                            <MudText Typo="Typo.h6">Währung</MudText>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary mb-2">
+                                Standard ist EUR. Diese Währung wird bei Preisangaben in der App verwendet.
+                            </MudText>
+                            <div class="d-flex align-center gap-2 flex-wrap">
+                                <MudSelect T="string" Value="_currencyCode" ValueChanged="OnCurrencyChanged" Label="Währung" Dense="true" Style="min-width:180px;">
+                                    @foreach (var currency in _currencies)
+                                    {
+                                        <MudSelectItem T="string" Value="@currency">@currency</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveCurrency" Disabled="_savingCurrency || !_currencyDirty">
+                                    @(_savingCurrency ? "Speichern..." : "Speichern")
+                                </MudButton>
+                            </div>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
                 @* Usage *@
                 <MudItem xs="12">
                     <MudCard>
@@ -235,6 +259,10 @@
     private IBrowserFile? _pendingLogo;
     private bool _savingLogo;
     private string? _logoError;
+    private string _currencyCode = "EUR";
+    private bool _currencyDirty;
+    private bool _savingCurrency;
+    private static readonly string[] _currencies = ["EUR", "CHF", "USD", "GBP"];
 
     // Stripe state
     private SubscriptionInfo? _stripeInfo;
@@ -265,6 +293,7 @@
         _limits = await TierLimitService.GetCurrentLimitsAsync();
         _usage = await TierLimitService.GetUsageAsync();
         _logoPath = await TenantService.GetLogoPathAsync();
+        _currencyCode = await TenantService.GetCurrencyCodeAsync();
 
         // Load Stripe data
         try
@@ -276,6 +305,32 @@
             Snackbar.Add($"Fehler beim Laden der Abo-Daten: {ex.Message}", Severity.Error);
         }
         _stripeLoading = false;
+    }
+
+    private void OnCurrencyChanged(string? value)
+    {
+        var normalized = (value ?? "EUR").Trim().ToUpperInvariant();
+        _currencyCode = string.IsNullOrWhiteSpace(normalized) ? "EUR" : normalized;
+        _currencyDirty = true;
+    }
+
+    private async Task SaveCurrency()
+    {
+        _savingCurrency = true;
+        try
+        {
+            await TenantService.SetCurrencyCodeAsync(_currencyCode);
+            _currencyDirty = false;
+            Snackbar.Add($"Währung gespeichert: {_currencyCode}", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Fehler beim Speichern der Währung: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _savingCurrency = false;
+        }
     }
 
     private async Task OnLogoSelected(InputFileChangeEventArgs e)

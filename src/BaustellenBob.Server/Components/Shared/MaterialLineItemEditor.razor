@@ -1,4 +1,5 @@
 @inject IMaterialService MaterialService
+@inject ITenantService TenantService
 
 <div>
     <MudText Typo="Typo.subtitle2" Class="mb-2">
@@ -66,10 +67,10 @@
                 <MudTd DataLabel="Menge" Style="text-align:right">@context.Quantity.ToString("G29")</MudTd>
                 <MudTd DataLabel="Einheit">@context.Unit</MudTd>
                 <MudTd DataLabel="Preis" Style="text-align:right">
-                    @(context.UnitPrice > 0 ? $"CHF {context.UnitPrice:F2}" : "—")
+                    @(context.UnitPrice > 0 ? $"{_currencyCode} {context.UnitPrice:F2}" : "—")
                 </MudTd>
                 <MudTd DataLabel="Total" Style="text-align:right">
-                    @(context.UnitPrice > 0 ? $"CHF {context.TotalPrice:F2}" : "—")
+                    @(context.UnitPrice > 0 ? $"{_currencyCode} {context.TotalPrice:F2}" : "—")
                 </MudTd>
                 <MudTd>
                     <MudIconButton Icon="@Icons.Material.Filled.RemoveCircleOutline"
@@ -85,7 +86,7 @@
                         <MudText Typo="Typo.body2"><b>Total</b></MudText>
                     </MudTd>
                     <MudTd Style="text-align:right">
-                        <MudText Typo="Typo.body2"><b>CHF @Items.Sum(i => i.TotalPrice).ToString("F2")</b></MudText>
+                        <MudText Typo="Typo.body2"><b>@_currencyCode @Items.Sum(i => i.TotalPrice).ToString("F2")</b></MudText>
                     </MudTd>
                     <MudTd></MudTd>
                 }
@@ -101,6 +102,8 @@
     [Parameter] public List<MaterialEntryDto> Items { get; set; } = new();
     [Parameter] public EventCallback<List<MaterialEntryDto>> ItemsChanged { get; set; }
 
+    private string _currencyCode = "EUR";
+
     private string _name = string.Empty;
     private decimal _qty = 1;
     private string _unit = "Stk";
@@ -108,6 +111,11 @@
 
     private static readonly string[] _units =
         ["Stk", "m", "m²", "m³", "kg", "t", "L", "h", "Psch"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currencyCode = await TenantService.GetCurrencyCodeAsync();
+    }
 
     private async Task<IEnumerable<string>> SearchAsync(string value, CancellationToken ct)
     {
