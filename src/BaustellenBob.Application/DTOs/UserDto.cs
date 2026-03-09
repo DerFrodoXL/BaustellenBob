@@ -9,4 +9,5 @@ public class UserDto
     public string Email { get; set; } = string.Empty;
     public UserRole Role { get; set; }
     public string? NewPassword { get; set; }
+    public string? ProfilePicturePath { get; set; }
 }

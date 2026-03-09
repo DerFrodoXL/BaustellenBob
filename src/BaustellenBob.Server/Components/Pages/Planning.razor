@@ -38,7 +38,14 @@ else
         <MudCard Class="mb-3">
             <MudCardHeader>
                 <MudAvatar Color="Color.Primary" Size="Size.Small">
-                    @group.Key.UserName[0]
+                    @if (!string.IsNullOrEmpty(group.First().UserProfilePicturePath))
+                    {
+                        <MudImage Src="@($"/uploads/{group.First().UserProfilePicturePath}")" Alt="@group.Key.UserName" Style="width:100%;height:100%;object-fit:cover;" />
+                    }
+                    else
+                    {
+                        @group.Key.UserName[0]
+                    }
                 </MudAvatar>
                 <MudText Typo="Typo.h6" Class="ml-2">@group.Key.UserName</MudText>
             </MudCardHeader>

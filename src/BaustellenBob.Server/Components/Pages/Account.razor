@@ -1,5 +1,6 @@
 @page "/account"
 @attribute [Authorize(Roles = "Admin")]
+@using Microsoft.AspNetCore.Components.Forms
 
 <PageTitle>Konto & Plan</PageTitle>
 
@@ -12,6 +13,47 @@
 else
 {
     <MudGrid>
+        @* Company Logo Card *@
+        <MudItem xs="12" md="6">
+            <MudCard>
+                <MudCardHeader>
+                    <MudText Typo="Typo.h6">Firmenlogo</MudText>
+                </MudCardHeader>
+                <MudCardContent>
+                    <div class="d-flex align-center gap-4 mb-3">
+                        @if (!string.IsNullOrEmpty(_previewUrl))
+                        {
+                            <MudImage Src="@_previewUrl" Alt="Firmenlogo" Style="max-height:80px;max-width:200px;object-fit:contain;" />
+                        }
+                        else if (!string.IsNullOrEmpty(_logoPath))
+                        {
+                            <MudImage Src="@($"/uploads/{_logoPath}")" Alt="Firmenlogo" Style="max-height:80px;max-width:200px;object-fit:contain;" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Business" Style="font-size:64px;" Class="mud-text-secondary" />
+                        }
+                    </div>
+                    @if (_logoError is not null)
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mb-2">@_logoError</MudAlert>
+                    }
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary mb-2">PNG, JPG oder WebP — max. 2 MB. Wird in der App-Leiste angezeigt.</MudText>
+                    <InputFile id="logoInput" OnChange="OnLogoSelected" accept="image/*" style="display:none;" />
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                               OnClick="@(() => _jsRuntime.InvokeVoidAsync("eval", "document.getElementById('logoInput').click()"))">
+                        Logo auswählen
+                    </MudButton>
+                    @if (_pendingLogo is not null)
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                   Class="ml-2" OnClick="SaveLogo" Disabled="_savingLogo">
+                            @(_savingLogo ? "Speichern..." : "Speichern")
+                        </MudButton>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
         <MudItem xs="12" md="6">
             <MudCard>
                 <MudCardHeader>
@@ -81,16 +123,66 @@ else
 
 @code {
     [Inject] private ITierLimitService TierLimitService { get; set; } = null!;
+    [Inject] private ITenantService TenantService { get; set; } = null!;
+    [Inject] private IJSRuntime _jsRuntime { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
     private TierLimit? _limits;
     private TierUsage? _usage;
     private string _tierName = string.Empty;
+
+    private string? _logoPath;
+    private string? _previewUrl;
+    private IBrowserFile? _pendingLogo;
+    private bool _savingLogo;
+    private string? _logoError;
 
     protected override async Task OnInitializedAsync()
     {
         _limits = await TierLimitService.GetCurrentLimitsAsync();
         _usage = await TierLimitService.GetUsageAsync();
         _tierName = await TierLimitService.GetCurrentTierNameAsync();
+        _logoPath = await TenantService.GetLogoPathAsync();
+    }
+
+    private async Task OnLogoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file.Size > 2 * 1024 * 1024)
+        {
+            _logoError = "Logo darf maximal 2 MB groß sein.";
+            return;
+        }
+        _logoError = null;
+        _pendingLogo = file;
+
+        using var ms = new MemoryStream();
+        await file.OpenReadStream(2 * 1024 * 1024).CopyToAsync(ms);
+        var base64 = Convert.ToBase64String(ms.ToArray());
+        _previewUrl = $"data:{file.ContentType};base64,{base64}";
+    }
+
+    private async Task SaveLogo()
+    {
+        if (_pendingLogo is null) return;
+        _savingLogo = true;
+        _logoError = null;
+        try
+        {
+            using var stream = _pendingLogo.OpenReadStream(2 * 1024 * 1024);
+            _logoPath = await TenantService.UploadLogoAsync(_pendingLogo.Name, stream);
+            _pendingLogo = null;
+            _previewUrl = null;
+            Snackbar.Add("Logo gespeichert.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _logoError = ex.Message;
+        }
+        finally
+        {
+            _savingLogo = false;
+        }
     }
 
     private string GetTierDescription() => _tierName switch

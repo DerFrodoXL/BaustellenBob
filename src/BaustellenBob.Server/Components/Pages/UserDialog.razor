@@ -7,6 +7,33 @@
         {
             <MudAlert Severity="Severity.Error" Class="mb-3">@_error</MudAlert>
         }
+
+        @* Profile picture preview + upload *@
+        <div class="d-flex align-center gap-4 mb-4">
+            <MudAvatar Style="width:72px;height:72px;">
+                @if (!string.IsNullOrEmpty(_previewUrl))
+                {
+                    <MudImage Src="@_previewUrl" Alt="Profilbild" Style="width:100%;height:100%;object-fit:cover;" />
+                }
+                else if (!string.IsNullOrEmpty(Model.ProfilePicturePath))
+                {
+                    <MudImage Src="@($"/uploads/{Model.ProfilePicturePath}")" Alt="Profilbild" Style="width:100%;height:100%;object-fit:cover;" />
+                }
+                else
+                {
+                    @(Model.Name.Length > 0 ? Model.Name[0].ToString().ToUpper() : "?")
+                }
+            </MudAvatar>
+            <div>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary mb-1">Profilbild (JPG, PNG, max. 5 MB)</MudText>
+                <InputFile id="avatarInput" OnChange="OnAvatarSelected" accept="image/*" style="display:none;" />
+                <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                           OnClick="@(() => _jsRuntime.InvokeVoidAsync("eval", "document.getElementById('avatarInput').click()"))">
+                    Bild auswählen
+                </MudButton>
+            </div>
+        </div>
+
         <MudTextField T="string" @bind-Value="Model.Name" Label="Name" Required="true" Class="mb-3" />
         <MudTextField T="string" @bind-Value="Model.Email" Label="E-Mail" Required="true" InputType="InputType.Email" Class="mb-3" />
         <MudSelect T="UserRole" @bind-Value="Model.Role" Label="Rolle" Class="mb-3">
@@ -20,19 +47,25 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Abbrechen</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">Speichern</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="_saving">
+            @(_saving ? "Speichern..." : "Speichern")
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private IJSRuntime _jsRuntime { get; set; } = null!;
 
     [Parameter] public UserDto? Existing { get; set; }
 
     private UserDto Model { get; set; } = new();
     private bool _isEdit;
+    private bool _saving;
     private string? _error;
+    private IBrowserFile? _pendingAvatar;
+    private string? _previewUrl;
 
     protected override void OnParametersSet()
     {
@@ -44,26 +77,68 @@
                 Id = Existing.Id,
                 Name = Existing.Name,
                 Email = Existing.Email,
-                Role = Existing.Role
+                Role = Existing.Role,
+                ProfilePicturePath = Existing.ProfilePicturePath
             };
         }
+    }
+
+    private async Task OnAvatarSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            _error = "Bild darf maximal 5 MB groß sein.";
+            return;
+        }
+        _error = null;
+        _pendingAvatar = file;
+
+        // Build a data-URL for the preview
+        using var ms = new MemoryStream();
+        await file.OpenReadStream(5 * 1024 * 1024).CopyToAsync(ms);
+        var base64 = Convert.ToBase64String(ms.ToArray());
+        _previewUrl = $"data:{file.ContentType};base64,{base64}";
     }
 
     private async Task Save()
     {
         _error = null;
+        _saving = true;
         try
         {
             if (_isEdit)
+            {
                 await UserService.UpdateAsync(Model);
+                if (_pendingAvatar is not null)
+                    await UploadAvatar(Model.Id);
+            }
             else
-                await UserService.CreateAsync(Model);
+            {
+                var created = await UserService.CreateAsync(Model);
+                if (_pendingAvatar is not null)
+                    await UploadAvatar(created.Id);
+            }
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (TierLimitExceededException ex)
         {
             _error = ex.Message;
         }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task UploadAvatar(Guid userId)
+    {
+        using var stream = _pendingAvatar!.OpenReadStream(5 * 1024 * 1024);
+        await UserService.UploadProfilePictureAsync(userId, _pendingAvatar.Name, stream);
     }
 
     private void Cancel() => MudDialog.Cancel();

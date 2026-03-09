@@ -76,7 +76,12 @@ builder.Services.AddScoped<IPhotoService>(sp =>
         sp.GetRequiredService<ITierLimitService>(),
         Path.Combine(builder.Environment.ContentRootPath, "uploads")));
 builder.Services.AddScoped<IWorkReportService, WorkReportService>();
-builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserService>(sp =>
+    new UserService(
+        sp.GetRequiredService<AppDbContext>(),
+        sp.GetRequiredService<ITenantProvider>(),
+        sp.GetRequiredService<ITierLimitService>(),
+        Path.Combine(builder.Environment.ContentRootPath, "uploads")));
 builder.Services.AddScoped<ITierLimitService, TierLimitService>();
 builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
@@ -87,6 +92,11 @@ builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 builder.Services.AddScoped<IProjectReportService>(sp =>
     new ProjectReportService(
         sp.GetRequiredService<AppDbContext>(),
+        Path.Combine(builder.Environment.ContentRootPath, "uploads")));
+builder.Services.AddScoped<ITenantService>(sp =>
+    new TenantService(
+        sp.GetRequiredService<AppDbContext>(),
+        sp.GetRequiredService<ITenantProvider>(),
         Path.Combine(builder.Environment.ContentRootPath, "uploads")));
 
 // QuestPDF Community license

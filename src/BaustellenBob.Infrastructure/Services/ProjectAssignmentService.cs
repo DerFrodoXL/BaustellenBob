@@ -30,6 +30,7 @@ public class ProjectAssignmentService : IProjectAssignmentService
                 ProjectName = a.Project.Name,
                 UserId = a.UserId,
                 UserName = a.User.Name,
+                UserProfilePicturePath = a.User.ProfilePicturePath,
                 StartDate = a.StartDate,
                 EndDate = a.EndDate,
                 Notes = a.Notes
@@ -50,6 +51,7 @@ public class ProjectAssignmentService : IProjectAssignmentService
                 ProjectName = a.Project.Name,
                 UserId = a.UserId,
                 UserName = a.User.Name,
+                UserProfilePicturePath = a.User.ProfilePicturePath,
                 StartDate = a.StartDate,
                 EndDate = a.EndDate,
                 Notes = a.Notes

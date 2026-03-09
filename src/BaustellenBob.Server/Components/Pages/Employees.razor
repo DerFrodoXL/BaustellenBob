@@ -14,12 +14,25 @@
 <MudHidden Breakpoint="Breakpoint.SmAndDown">
     <MudTable Items="_users" Hover="true" Striped="true" Dense="true" Loading="_loading">
         <HeaderContent>
+            <MudTh></MudTh>
             <MudTh>Name</MudTh>
             <MudTh>E-Mail</MudTh>
             <MudTh>Rolle</MudTh>
             <MudTh>Aktionen</MudTh>
         </HeaderContent>
         <RowTemplate>
+            <MudTd>
+                <MudAvatar Size="Size.Small">
+                    @if (!string.IsNullOrEmpty(context.ProfilePicturePath))
+                    {
+                        <MudImage Src="@($"/uploads/{context.ProfilePicturePath}")" Alt="@context.Name" Style="width:100%;height:100%;object-fit:cover;" />
+                    }
+                    else
+                    {
+                        @context.Name[0].ToString().ToUpper()
+                    }
+                </MudAvatar>
+            </MudTd>
             <MudTd DataLabel="Name">@context.Name</MudTd>
             <MudTd DataLabel="E-Mail">@context.Email</MudTd>
             <MudTd DataLabel="Rolle">
@@ -50,9 +63,21 @@
                     <MudCard>
                         <MudCardContent>
                             <div class="d-flex justify-space-between align-center">
-                                <div>
-                                    <MudText Typo="Typo.h6">@user.Name</MudText>
-                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@user.Email</MudText>
+                                <div class="d-flex align-center gap-3">
+                                    <MudAvatar Size="Size.Medium">
+                                        @if (!string.IsNullOrEmpty(user.ProfilePicturePath))
+                                        {
+                                            <MudImage Src="@($"/uploads/{user.ProfilePicturePath}")" Alt="@user.Name" Style="width:100%;height:100%;object-fit:cover;" />
+                                        }
+                                        else
+                                        {
+                                            @user.Name[0].ToString().ToUpper()
+                                        }
+                                    </MudAvatar>
+                                    <div>
+                                        <MudText Typo="Typo.h6">@user.Name</MudText>
+                                        <MudText Typo="Typo.body2" Class="mud-text-secondary">@user.Email</MudText>
+                                    </div>
                                 </div>
                                 <MudChip T="string" Size="Size.Small">@user.Role</MudChip>
                             </div>

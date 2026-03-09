@@ -1,4 +1,6 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
 
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -9,12 +11,43 @@
     <MudAppBar Elevation="1" Color="Color.Primary">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
                        OnClick="@ToggleDrawer" />
-        <MudText Typo="Typo.h6" Class="ml-3">BaustellenBob</MudText>
+
+        @* Company logo + name on the left *@
+        @if (!string.IsNullOrEmpty(_logoPath))
+        {
+            <img src="@($"/uploads/{_logoPath}")" alt="Logo"
+                 style="height:36px;max-width:130px;object-fit:contain;margin-left:8px;border-radius:4px;" />
+            <MudHidden Breakpoint="Breakpoint.Xs">
+                <MudText Typo="Typo.h6" Class="ml-2">@_tenantName</MudText>
+            </MudHidden>
+        }
+        else
+        {
+            <MudText Typo="Typo.h6" Class="ml-3">@(_tenantName ?? "BaustellenBob")</MudText>
+        }
+
         <MudSpacer />
+
         <AuthorizeView>
             <Authorized>
-                <MudText Typo="Typo.body2" Class="mr-3">@context.User.FindFirst("TenantName")?.Value</MudText>
-                <MudText Typo="Typo.body2" Class="mr-3">@context.User.Identity?.Name</MudText>
+                @* User name – hidden on xs *@
+                <MudHidden Breakpoint="Breakpoint.Xs">
+                    <MudText Typo="Typo.body2" Class="mr-3">@context.User.Identity?.Name</MudText>
+                </MudHidden>
+
+                @* User avatar *@
+                <MudAvatar Style="width:36px;height:36px;margin-right:8px;" Color="Color.Secondary">
+                    @if (!string.IsNullOrEmpty(_userAvatarPath))
+                    {
+                        <img src="@($"/uploads/{_userAvatarPath}")" alt="Profilbild"
+                             style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />
+                    }
+                    else
+                    {
+                        @((context.User.Identity?.Name ?? "?").Substring(0, 1).ToUpper())
+                    }
+                </MudAvatar>
+
                 <form method="post" action="/api/auth/logout">
                     <AntiforgeryToken />
                     <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit"
@@ -40,7 +73,57 @@
 </div>
 
 @code {
+    [Inject] private ITenantService TenantService { get; set; } = null!;
+    [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
+
     private bool _drawerOpen = true;
+    private string? _logoPath;
+    private string? _tenantName;
+    private string? _userAvatarPath;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Tenant name comes from claims – no DB needed, safe during prerender
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            _tenantName = authState.User.FindFirst("TenantName")?.Value;
+        }
+        catch { }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // DB calls only run after the interactive SignalR circuit is established
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user.Identity?.IsAuthenticated != true) return;
+
+            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (Guid.TryParse(userIdClaim, out var userId))
+                await Task.WhenAll(LoadLogo(), LoadUserAvatar(userId));
+            else
+                await LoadLogo();
+
+            StateHasChanged();
+        }
+        catch { }
+    }
+
+    private async Task LoadLogo()
+    {
+        try { _logoPath = await TenantService.GetLogoPathAsync(); } catch { }
+    }
+
+    private async Task LoadUserAvatar(Guid userId)
+    {
+        try { _userAvatarPath = await UserService.GetProfilePicturePathAsync(userId); } catch { }
+    }
 
     private void ToggleDrawer()
     {
