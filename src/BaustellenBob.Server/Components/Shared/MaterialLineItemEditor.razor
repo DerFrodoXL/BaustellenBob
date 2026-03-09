@@ -12,6 +12,8 @@
                              @bind-Value="_name"
                              Label="Bezeichnung"
                              SearchFunc="SearchAsync"
+                             MinCharacters="0"
+                             OpenOnFocus="true"
                              Strict="false"
                              CoerceText="true"
                              CoerceValue="true"
@@ -109,7 +111,6 @@
 
     private async Task<IEnumerable<string>> SearchAsync(string value, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(value)) return [];
         return await MaterialService.GetSuggestionsAsync(value);
     }
 

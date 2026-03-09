@@ -40,10 +40,29 @@ public class MaterialService : IMaterialService
 
     public async Task<List<string>> GetSuggestionsAsync(string query)
     {
-        if (string.IsNullOrWhiteSpace(query)) return [];
-        var lower = query.ToLower();
-        return await _db.MaterialEntries
-            .Where(m => m.Name.ToLower().Contains(lower))
+        var materialQuery = _db.MaterialEntries
+            .AsNoTracking()
+            .Where(m => !string.IsNullOrWhiteSpace(m.Name));
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return await materialQuery
+                .GroupBy(m => m.Name)
+                .Select(g => new
+                {
+                    Name = g.Key,
+                    UsageCount = g.Count(),
+                    LastUsedAt = g.Max(x => x.CreatedAt)
+                })
+                .OrderByDescending(x => x.UsageCount)
+                .ThenByDescending(x => x.LastUsedAt)
+                .Select(x => x.Name)
+                .Take(10)
+                .ToListAsync();
+        }
+
+        return await materialQuery
+            .Where(m => EF.Functions.ILike(m.Name, $"%{query.Trim()}%"))
             .Select(m => m.Name)
             .Distinct()
             .OrderBy(n => n)
