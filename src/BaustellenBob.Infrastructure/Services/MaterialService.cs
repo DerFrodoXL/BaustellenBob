@@ -11,6 +11,7 @@ public class MaterialService : IMaterialService
 {
     private readonly AppDbContext _db;
     private readonly ITenantProvider _tenantProvider;
+    private readonly SemaphoreSlim _suggestionQueryLock = new(1, 1);
 
     public MaterialService(AppDbContext db, ITenantProvider tenantProvider)
     {
@@ -38,8 +39,11 @@ public class MaterialService : IMaterialService
             .ToListAsync();
     }
 
-    public async Task<List<string>> GetSuggestionsAsync(string query)
+    public async Task<List<string>> GetSuggestionsAsync(string query, CancellationToken cancellationToken = default)
     {
+        await _suggestionQueryLock.WaitAsync(cancellationToken);
+        try
+        {
         var materialQuery = _db.MaterialEntries
             .AsNoTracking()
             .Where(m => !string.IsNullOrWhiteSpace(m.Name));
@@ -58,7 +62,7 @@ public class MaterialService : IMaterialService
                 .ThenByDescending(x => x.LastUsedAt)
                 .Select(x => x.Name)
                 .Take(10)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
         }
 
         return await materialQuery
@@ -67,7 +71,12 @@ public class MaterialService : IMaterialService
             .Distinct()
             .OrderBy(n => n)
             .Take(10)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
+        }
+        finally
+        {
+            _suggestionQueryLock.Release();
+        }
     }
 
     public async Task<MaterialEntryDto> CreateAsync(Guid projectId, MaterialEntryDto dto)
