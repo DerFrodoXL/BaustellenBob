@@ -10,6 +10,10 @@ namespace BaustellenBob.Infrastructure.Services;
 
 public class PhotoService : IPhotoService
 {
+    private const int MaxPhotoWidth = 1280;
+    private const int MaxPhotoHeight = 1280;
+    private const int PhotoJpegQuality = 72;
+
     private readonly AppDbContext _db;
     private readonly ITenantProvider _tenantProvider;
     private readonly ICurrentUserProvider _currentUser;
@@ -47,7 +51,11 @@ public class PhotoService : IPhotoService
         await _tierLimits.EnsureCanUploadPhotoAsync();
         var tenantId = _tenantProvider.TenantId;
         var safeFileName = $"{Guid.NewGuid()}.jpg";
-        var fileBytes = await ImageProcessor.ToJpegBytesAsync(fileStream, maxWidth: 1920, maxHeight: 1920, quality: 85);
+        var fileBytes = await ImageProcessor.ToJpegBytesAsync(
+            fileStream,
+            maxWidth: MaxPhotoWidth,
+            maxHeight: MaxPhotoHeight,
+            quality: PhotoJpegQuality);
 
         var relativePath = $"{tenantId}/{projectId}/{safeFileName}";
 

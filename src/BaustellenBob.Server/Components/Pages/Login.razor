@@ -19,7 +19,9 @@
             {
                 <MudAlert Severity="Severity.Error" Class="mb-3">E-Mail oder Passwort falsch.</MudAlert>
             }
-            <form method="post" action="/api/auth/login">
+            <form method="post"
+                action="/api/auth/login"
+                onsubmit="const btn=this.querySelector('button[type=submit]'); if(btn){btn.disabled=true; const idle=btn.querySelector('[data-idle]'); const loading=btn.querySelector('[data-loading]'); if(idle){idle.style.display='none';} if(loading){loading.style.display='inline-flex';}}">
                 <AntiforgeryToken />
                 <MudTextField T="string"
                               Label="E-Mail"
@@ -43,7 +45,11 @@
                               Class="mb-3" />
                 <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
                            Color="Color.Primary" FullWidth="true" Class="mt-2">
-                    Anmelden
+                    <span data-idle>Anmelden</span>
+                    <span data-loading style="display:none; align-items:center; gap:8px;">
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Inherit" />
+                        Anmeldung laeuft...
+                    </span>
                 </MudButton>
             </form>
         </MudCardContent>

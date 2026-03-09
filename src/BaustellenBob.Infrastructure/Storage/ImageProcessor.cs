@@ -22,6 +22,13 @@ public static class ImageProcessor
         }
     }
 
+    private static void StripMetadata(Image image)
+    {
+        image.Metadata.ExifProfile = null;
+        image.Metadata.IccProfile = null;
+        image.Metadata.XmpProfile = null;
+    }
+
     /// <summary>
     /// Resizes an image to fit within maxWidth×maxHeight (preserving aspect ratio),
     /// saves as JPEG at the given quality. Returns the file extension to use (.jpg).
@@ -50,6 +57,7 @@ public static class ImageProcessor
     {
         using var image = await Image.LoadAsync(input);
         ResizeIfNeeded(image, maxWidth, maxHeight);
+        StripMetadata(image);
 
         using var output = new MemoryStream();
         await image.SaveAsync(output, new JpegEncoder { Quality = quality });
