@@ -119,20 +119,28 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
-// Trust Railway's (and other reverse proxies') X-Forwarded-Proto / X-Forwarded-For headers
-// so UseHttpsRedirection works correctly behind the TLS-terminating edge.
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+// Railway (and similar platforms) terminates TLS at the edge and forwards plain HTTP
+// to the container. Clear the default KnownNetworks/KnownProxies so the
+// X-Forwarded-Proto:https header is trusted regardless of the upstream proxy IP.
+var forwardedOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-});
+};
+forwardedOptions.KnownNetworks.Clear();
+forwardedOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedOptions);
 
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
+{
+    // In dev we hit the Kestrel HTTPS port directly — redirect makes sense.
+    app.UseHttpsRedirection();
+}
+else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    app.UseHsts();
+    // HSTS is handled by Railway's edge — no need to emit it from the app.
 }
 
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseAuthentication();
