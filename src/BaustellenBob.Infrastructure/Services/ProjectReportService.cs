@@ -10,12 +10,10 @@ namespace BaustellenBob.Infrastructure.Services;
 public class ProjectReportService : IProjectReportService
 {
     private readonly AppDbContext _db;
-    private readonly string _uploadRoot;
 
-    public ProjectReportService(AppDbContext db, string uploadRoot)
+    public ProjectReportService(AppDbContext db)
     {
         _db = db;
-        _uploadRoot = uploadRoot;
     }
 
     public async Task<byte[]> GenerateReportAsync(Guid projectId)
@@ -149,10 +147,9 @@ public class ProjectReportService : IProjectReportService
                         {
                             col.Item().PaddingTop(8).Column(photoCol =>
                             {
-                                var filePath = Path.Combine(_uploadRoot, photo.FilePath.Replace('/', Path.DirectorySeparatorChar));
-                                if (File.Exists(filePath))
+                                if (photo.FileData is { Length: > 0 })
                                 {
-                                    photoCol.Item().MaxHeight(250).Image(filePath);
+                                    photoCol.Item().MaxHeight(250).Image(photo.FileData);
                                 }
 
                                 var caption = $"{photo.CreatedAt:dd.MM.yyyy HH:mm}";

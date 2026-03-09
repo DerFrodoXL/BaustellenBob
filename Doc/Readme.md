@@ -1,5 +1,5 @@
 Nachfolgend ein technisches Konzept für ein MVP-SaaS für Handwerksbetriebe mit:
-Name BauBob
+Name Structra
 Blazor Server
 
 MudBlazor

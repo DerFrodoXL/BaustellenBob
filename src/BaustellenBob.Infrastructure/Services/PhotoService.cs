@@ -2,6 +2,7 @@ using BaustellenBob.Application.DTOs;
 using BaustellenBob.Application.Interfaces;
 using BaustellenBob.Domain.Entities;
 using BaustellenBob.Infrastructure.Data;
+using BaustellenBob.Infrastructure.Storage;
 using BaustellenBob.Shared.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,15 +14,13 @@ public class PhotoService : IPhotoService
     private readonly ITenantProvider _tenantProvider;
     private readonly ICurrentUserProvider _currentUser;
     private readonly ITierLimitService _tierLimits;
-    private readonly string _uploadRoot;
 
-    public PhotoService(AppDbContext db, ITenantProvider tenantProvider, ICurrentUserProvider currentUser, ITierLimitService tierLimits, string uploadRoot = "uploads")
+    public PhotoService(AppDbContext db, ITenantProvider tenantProvider, ICurrentUserProvider currentUser, ITierLimitService tierLimits)
     {
         _db = db;
         _tenantProvider = tenantProvider;
         _currentUser = currentUser;
         _tierLimits = tierLimits;
-        _uploadRoot = uploadRoot;
     }
 
     public async Task<List<PhotoDto>> GetByProjectAsync(Guid projectId)
@@ -47,16 +46,8 @@ public class PhotoService : IPhotoService
     {
         await _tierLimits.EnsureCanUploadPhotoAsync();
         var tenantId = _tenantProvider.TenantId;
-        var dir = Path.Combine(_uploadRoot, tenantId.ToString(), projectId.ToString());
-        Directory.CreateDirectory(dir);
-
-        var safeFileName = $"{Guid.NewGuid()}{Path.GetExtension(fileName)}";
-        var filePath = Path.Combine(dir, safeFileName);
-
-        using (var fs = new FileStream(filePath, FileMode.Create))
-        {
-            await fileStream.CopyToAsync(fs);
-        }
+        var safeFileName = $"{Guid.NewGuid()}.jpg";
+        var fileBytes = await ImageProcessor.ToJpegBytesAsync(fileStream, maxWidth: 1920, maxHeight: 1920, quality: 85);
 
         var relativePath = $"{tenantId}/{projectId}/{safeFileName}";
 
@@ -67,6 +58,8 @@ public class PhotoService : IPhotoService
             ProjectId = projectId,
             UploadedByUserId = _currentUser.UserId,
             FilePath = relativePath,
+            FileData = fileBytes,
+            FileContentType = "image/jpeg",
             Description = description,
             CreatedAt = DateTime.UtcNow,
             Latitude = latitude,
@@ -92,10 +85,6 @@ public class PhotoService : IPhotoService
     {
         var photo = await _db.Photos.FindAsync(id)
             ?? throw new InvalidOperationException("Photo not found.");
-
-        var fullPath = Path.Combine(_uploadRoot, photo.FilePath);
-        if (File.Exists(fullPath))
-            File.Delete(fullPath);
 
         _db.Photos.Remove(photo);
         await _db.SaveChangesAsync();

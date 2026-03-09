@@ -75,15 +75,13 @@ builder.Services.AddScoped<IPhotoService>(sp =>
         sp.GetRequiredService<AppDbContext>(),
         sp.GetRequiredService<ITenantProvider>(),
         sp.GetRequiredService<ICurrentUserProvider>(),
-        sp.GetRequiredService<ITierLimitService>(),
-        Path.Combine(builder.Environment.ContentRootPath, "uploads")));
+        sp.GetRequiredService<ITierLimitService>()));
 builder.Services.AddScoped<IWorkReportService, WorkReportService>();
 builder.Services.AddScoped<IUserService>(sp =>
     new UserService(
         sp.GetRequiredService<AppDbContext>(),
         sp.GetRequiredService<ITenantProvider>(),
-        sp.GetRequiredService<ITierLimitService>(),
-        Path.Combine(builder.Environment.ContentRootPath, "uploads")));
+        sp.GetRequiredService<ITierLimitService>()));
 builder.Services.AddScoped<ITierLimitService, TierLimitService>();
 builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
@@ -93,14 +91,11 @@ builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IProjectReportService>(sp =>
-    new ProjectReportService(
-        sp.GetRequiredService<AppDbContext>(),
-        Path.Combine(builder.Environment.ContentRootPath, "uploads")));
+    new ProjectReportService(sp.GetRequiredService<AppDbContext>()));
 builder.Services.AddScoped<ITenantService>(sp =>
     new TenantService(
         sp.GetRequiredService<AppDbContext>(),
-        sp.GetRequiredService<ITenantProvider>(),
-        Path.Combine(builder.Environment.ContentRootPath, "uploads")));
+        sp.GetRequiredService<ITenantProvider>()));
 
 // QuestPDF Community license
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
@@ -130,10 +125,6 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
-// Ensure uploads directory exists
-var uploadsPath = Path.Combine(builder.Environment.ContentRootPath, "uploads");
-Directory.CreateDirectory(uploadsPath);
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -223,30 +214,60 @@ app.MapPost("/api/auth/logout", async (HttpContext ctx) =>
     ctx.Response.Redirect("/login");
 });
 
-// Tenant-secured file download
-app.MapGet("/uploads/{tenantId}/{**filePath}", (HttpContext ctx, string tenantId, string filePath) =>
+// Tenant-secured image download from database storage
+app.MapGet("/uploads/{tenantId}/{**filePath}", async (HttpContext ctx, AppDbContext db, IWebHostEnvironment env, string tenantId, string filePath) =>
 {
     var userTenant = ctx.User.FindFirstValue("TenantId");
     if (userTenant is null || !string.Equals(userTenant, tenantId, StringComparison.OrdinalIgnoreCase))
         return Results.Forbid();
 
-    var fullPath = Path.Combine(uploadsPath, tenantId, filePath);
-    var normalizedFull = Path.GetFullPath(fullPath);
-    if (!normalizedFull.StartsWith(Path.GetFullPath(uploadsPath), StringComparison.OrdinalIgnoreCase))
+    var normalizedFilePath = filePath.Replace('\\', '/');
+    var relativePath = $"{tenantId}/{normalizedFilePath}";
+
+    if (!Guid.TryParse(tenantId, out var tenantGuid))
         return Results.Forbid();
 
-    if (!File.Exists(normalizedFull))
-        return Results.NotFound();
+    var photo = await db.Photos
+        .AsNoTracking()
+        .Where(p => p.FilePath == relativePath)
+        .Select(p => new { p.FileData, p.FileContentType })
+        .FirstOrDefaultAsync();
+    if (photo?.FileData is { Length: > 0 })
+        return Results.File(photo.FileData, photo.FileContentType ?? "image/jpeg");
 
-    var contentType = Path.GetExtension(normalizedFull).ToLowerInvariant() switch
+    var userAvatar = await db.Users
+        .AsNoTracking()
+        .Where(u => u.TenantId == tenantGuid && u.ProfilePicturePath == relativePath)
+        .Select(u => new { u.ProfilePictureData, u.ProfilePictureContentType })
+        .FirstOrDefaultAsync();
+    if (userAvatar?.ProfilePictureData is { Length: > 0 })
+        return Results.File(userAvatar.ProfilePictureData, userAvatar.ProfilePictureContentType ?? "image/jpeg");
+
+    var tenantLogo = await db.Tenants
+        .AsNoTracking()
+        .Where(t => t.Id == tenantGuid && t.LogoPath == relativePath)
+        .Select(t => new { t.LogoData, t.LogoContentType })
+        .FirstOrDefaultAsync();
+    if (tenantLogo?.LogoData is { Length: > 0 })
+        return Results.File(tenantLogo.LogoData, tenantLogo.LogoContentType ?? "image/png");
+
+    // Legacy fallback for already existing file-based uploads.
+    var uploadsRoot = Path.Combine(env.ContentRootPath, "uploads");
+    var fullPath = Path.GetFullPath(Path.Combine(uploadsRoot, tenantId, normalizedFilePath.Replace('/', Path.DirectorySeparatorChar)));
+    if (fullPath.StartsWith(Path.GetFullPath(uploadsRoot), StringComparison.OrdinalIgnoreCase) && File.Exists(fullPath))
     {
-        ".jpg" or ".jpeg" => "image/jpeg",
-        ".png" => "image/png",
-        ".gif" => "image/gif",
-        ".webp" => "image/webp",
-        _ => "application/octet-stream"
-    };
-    return Results.File(normalizedFull, contentType);
+        var contentType = Path.GetExtension(fullPath).ToLowerInvariant() switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            _ => "application/octet-stream"
+        };
+        return Results.File(fullPath, contentType);
+    }
+
+    return Results.NotFound();
 }).RequireAuthorization();
 
 // PDF project report download

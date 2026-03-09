@@ -1,0 +1,82 @@
+@page "/agb"
+@attribute [AllowAnonymous]
+@layout BaustellenBob.Server.Components.Layout.EmptyLayout
+
+<PageTitle>Structra - AGB</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="py-6">
+    <MudPaper Class="pa-6">
+        <MudText Typo="Typo.h4" GutterBottom="true">Allgemeine Geschaeftsbedingungen (AGB)</MudText>
+        <MudText Typo="Typo.caption" Class="mb-4">Stand: 09.03.2026</MudText>
+
+        <MudText Typo="Typo.h6" GutterBottom="true">1. Geltungsbereich</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            Diese AGB gelten fuer alle Vertraege zwischen
+            <strong>[VORNAME NACHNAME], Einzelunternehmer</strong>,
+            <strong>[STRASSE HAUSNUMMER, PLZ ORT]</strong> (nachfolgend "Anbieter") und den Nutzern
+            der SaaS-Anwendung "Structra".
+        </MudText>
+
+        <MudText Typo="Typo.h6" GutterBottom="true">2. Vertragsgegenstand</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            Der Anbieter stellt eine mandantenfaehige Software zur Baustellenverwaltung,
+            Fotodokumentation und Erstellung von Arbeitsberichten zur browserbasierten Nutzung bereit.
+        </MudText>
+
+        <MudText Typo="Typo.h6" GutterBottom="true">3. Vertragsschluss und Konto</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            Der Vertrag kommt mit erfolgreicher Registrierung und Freischaltung des Kundenkontos zustande.
+            Der Kunde ist verpflichtet, Zugangsdaten vertraulich zu behandeln und missbraeuchliche Nutzung
+            unverzueglich zu melden.
+        </MudText>
+
+        <MudText Typo="Typo.h6" GutterBottom="true">4. Leistungen und Verfuegbarkeit</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            Der Anbieter bemueht sich um eine hohe Verfuegbarkeit der Plattform. Wartungsfenster,
+            Sicherheitsupdates und technisch unvermeidbare Ausfaelle sind zulaessig.
+        </MudText>
+
+        <MudText Typo="Typo.h6" GutterBottom="true">5. Pflichten des Kunden</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            Der Kunde stellt sicher, dass hochgeladene Inhalte (z. B. Fotos, Berichte, Kundendaten)
+            rechtmaessig verarbeitet werden und keine Rechte Dritter verletzen.
+        </MudText>
+
+        <MudText Typo="Typo.h6" GutterBottom="true">6. Preise, Laufzeit, Kuendigung</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            Es gelten die zum Zeitpunkt der Bestellung angezeigten Preise. Sofern nicht anders vereinbart,
+            verlaengert sich ein kostenpflichtiger Vertrag jeweils um einen Abrechnungszeitraum und kann
+            mit einer Frist von <strong>[X TAGEN/WOCHEN]</strong> zum Periodenende gekuendigt werden.
+        </MudText>
+
+        <MudText Typo="Typo.h6" GutterBottom="true">7. Haftung</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            Der Anbieter haftet unbeschraenkt fuer Vorsatz und grobe Fahrlaessigkeit sowie fuer
+            Schaeden aus der Verletzung des Lebens, des Koerpers oder der Gesundheit. Bei leicht
+            fahrlaessiger Verletzung wesentlicher Vertragspflichten ist die Haftung auf den vertragstypischen,
+            vorhersehbaren Schaden begrenzt.
+        </MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            Eine Haftung fuer Datenverlust ist - ausser in Faellen von Vorsatz, grober Fahrlaessigkeit
+            oder soweit zwingende gesetzliche Vorschriften entgegenstehen - ausgeschlossen. Der Kunde ist
+            verpflichtet, angemessene und regelmaessige Datensicherungen seiner Daten vorzunehmen.
+        </MudText>
+
+        <MudText Typo="Typo.h6" GutterBottom="true">8. Datenschutz</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            Informationen zur Datenverarbeitung finden sich in den Datenschutzinformationen.
+            Sofern erforderlich, wird zwischen den Parteien ein Auftragsverarbeitungsvertrag geschlossen.
+        </MudText>
+
+        <MudText Typo="Typo.h6" GutterBottom="true">9. Schlussbestimmungen</MudText>
+        <MudText Typo="Typo.body1" Class="mb-4">
+            Es gilt deutsches Recht unter Ausschluss des UN-Kaufrechts. Ist der Kunde Kaufmann,
+            juristische Person des oeffentlichen Rechts oder oeffentlich-rechtliches Sondervermoegen,
+            ist Gerichtsstand <strong>[GERICHTSSTAND]</strong>.
+        </MudText>
+
+        <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
+            Platzhalter in eckigen Klammern muessen vor produktiver Nutzung durch deine echten Unternehmensdaten ersetzt werden.
+        </MudAlert>
+    </MudPaper>
+</MudContainer>

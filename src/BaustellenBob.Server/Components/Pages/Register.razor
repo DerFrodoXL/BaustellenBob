@@ -66,8 +66,13 @@
                 </MudButton>
             </form>
         </MudCardContent>
-        <MudCardActions Style="justify-content:center;">
+        <MudCardActions Style="flex-direction:column; align-items:center; gap:8px;">
             <MudLink Href="/login" Typo="Typo.body2">Bereits registriert? Anmelden</MudLink>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center;">
+                <MudLink Href="/impressum" Typo="Typo.caption">Impressum</MudLink>
+                <MudLink Href="/agb" Typo="Typo.caption">AGB</MudLink>
+                <MudLink Href="/tos" Typo="Typo.caption">ToS</MudLink>
+            </div>
         </MudCardActions>
     </MudCard>
 </div>

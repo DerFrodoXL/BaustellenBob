@@ -5,6 +5,8 @@ public class Photo : BaseEntity
     public Guid ProjectId { get; set; }
     public Guid UploadedByUserId { get; set; }
     public string FilePath { get; set; } = string.Empty;
+    public byte[]? FileData { get; set; }
+    public string? FileContentType { get; set; }
     public string Description { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public double? Latitude { get; set; }

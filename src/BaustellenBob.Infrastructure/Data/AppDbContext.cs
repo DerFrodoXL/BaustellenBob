@@ -36,6 +36,7 @@ public class AppDbContext : DbContext
         {
             e.HasKey(t => t.Id);
             e.Property(t => t.Name).HasMaxLength(200).IsRequired();
+            e.Property(t => t.LogoContentType).HasMaxLength(100);
         });
 
         // User
@@ -44,6 +45,7 @@ public class AppDbContext : DbContext
             e.HasKey(u => u.Id);
             e.Property(u => u.Email).HasMaxLength(200).IsRequired();
             e.Property(u => u.Name).HasMaxLength(200).IsRequired();
+            e.Property(u => u.ProfilePictureContentType).HasMaxLength(100);
             e.HasOne(u => u.Tenant).WithMany(t => t.Users).HasForeignKey(u => u.TenantId);
             e.HasQueryFilter(u => u.TenantId == _tenantProvider.TenantId);
         });
@@ -79,6 +81,7 @@ public class AppDbContext : DbContext
         {
             e.HasKey(p => p.Id);
             e.Property(p => p.FilePath).HasMaxLength(500).IsRequired();
+            e.Property(p => p.FileContentType).HasMaxLength(100);
             e.Property(p => p.Description).HasMaxLength(1000);
             e.HasOne(p => p.Project).WithMany(b => b.Photos).HasForeignKey(p => p.ProjectId);
             e.HasOne(p => p.UploadedBy).WithMany().HasForeignKey(p => p.UploadedByUserId);

@@ -13,14 +13,12 @@ public class UserService : IUserService
     private readonly AppDbContext _db;
     private readonly ITenantProvider _tenantProvider;
     private readonly ITierLimitService _tierLimits;
-    private readonly string _uploadRoot;
 
-    public UserService(AppDbContext db, ITenantProvider tenantProvider, ITierLimitService tierLimits, string uploadRoot = "uploads")
+    public UserService(AppDbContext db, ITenantProvider tenantProvider, ITierLimitService tierLimits)
     {
         _db = db;
         _tenantProvider = tenantProvider;
         _tierLimits = tierLimits;
-        _uploadRoot = uploadRoot;
     }
 
     public async Task<List<UserDto>> GetAllAsync()
@@ -87,24 +85,17 @@ public class UserService : IUserService
     public async Task<string> UploadProfilePictureAsync(Guid userId, string fileName, Stream stream)
     {
         var tenantId = _tenantProvider.TenantId;
-        var dir = Path.Combine(_uploadRoot, tenantId.ToString(), "avatars");
-        Directory.CreateDirectory(dir);
-
-        // Always save as JPEG – max 256×256 px, ~Q82 ≈ 10–25 KB
+        // Always save as JPEG – max 256x256 px, ~Q82 ~= 10-25 KB
         var safeFileName = $"{userId}.jpg";
-        var fullPath = Path.Combine(dir, safeFileName);
-        var normalizedFull = Path.GetFullPath(fullPath);
-        var normalizedRoot = Path.GetFullPath(_uploadRoot);
-        if (!normalizedFull.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Ungültiger Dateipfad.");
-
-        await ImageProcessor.SaveAsJpegAsync(stream, fullPath, maxWidth: 256, maxHeight: 256, quality: 82);
+        var bytes = await ImageProcessor.ToJpegBytesAsync(stream, maxWidth: 256, maxHeight: 256, quality: 82);
 
         var relativePath = $"{tenantId}/avatars/{safeFileName}";
 
         var entity = await _db.Users.FindAsync(userId)
             ?? throw new InvalidOperationException("Benutzer nicht gefunden.");
         entity.ProfilePicturePath = relativePath;
+        entity.ProfilePictureData = bytes;
+        entity.ProfilePictureContentType = "image/jpeg";
         await _db.SaveChangesAsync();
 
         return relativePath;

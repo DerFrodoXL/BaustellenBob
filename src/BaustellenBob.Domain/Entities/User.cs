@@ -9,6 +9,8 @@ public class User : BaseEntity
     public string PasswordHash { get; set; } = string.Empty;
     public UserRole Role { get; set; }
     public string? ProfilePicturePath { get; set; }
+    public byte[]? ProfilePictureData { get; set; }
+    public string? ProfilePictureContentType { get; set; }
 
     public Tenant Tenant { get; set; } = null!;
 }

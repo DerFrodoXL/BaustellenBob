@@ -1,0 +1,56 @@
+@page "/impressum"
+@attribute [AllowAnonymous]
+@layout BaustellenBob.Server.Components.Layout.EmptyLayout
+
+<PageTitle>Structra - Impressum</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="py-6">
+    <MudPaper Class="pa-6">
+        <MudText Typo="Typo.h4" GutterBottom="true">Impressum</MudText>
+
+        <MudText Typo="Typo.h6" Class="mt-2">Angaben gemaess § 5 TMG</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            [VORNAME NACHNAME]<br />
+            Einzelunternehmen<br />
+            [STRASSE HAUSNUMMER]<br />
+            [PLZ ORT]<br />
+            Deutschland
+        </MudText>
+
+        <MudText Typo="Typo.h6">Kontakt</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            Telefon: [TELEFONNUMMER]<br />
+            E-Mail: [E-MAIL-ADRESSE]
+        </MudText>
+
+        <MudText Typo="Typo.h6">Umsatzsteuer-ID</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            Umsatzsteuer-Identifikationsnummer gemaess § 27 a Umsatzsteuergesetz:<br />
+            [UST-ID ODER "NICHT VORHANDEN"]
+        </MudText>
+
+        <MudText Typo="Typo.h6">Verantwortlich fuer den Inhalt nach § 18 Abs. 2 MStV</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            [VORNAME NACHNAME], Anschrift wie oben.
+        </MudText>
+
+        <MudText Typo="Typo.h6">EU-Streitschlichtung</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            Die Europaeische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:
+            <MudLink Href="https://ec.europa.eu/consumers/odr" Target="_blank">
+                https://ec.europa.eu/consumers/odr
+            </MudLink>.
+            Unsere E-Mail-Adresse findest du oben im Impressum.
+        </MudText>
+
+        <MudText Typo="Typo.h6">Verbraucherstreitbeilegung/Universalschlichtungsstelle</MudText>
+        <MudText Typo="Typo.body1" Class="mb-4">
+            Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer
+            Verbraucherschlichtungsstelle teilzunehmen.
+        </MudText>
+
+        <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
+            Dieses Impressum ist eine technische Vorlage und ersetzt keine Rechtsberatung.
+        </MudAlert>
+    </MudPaper>
+</MudContainer>

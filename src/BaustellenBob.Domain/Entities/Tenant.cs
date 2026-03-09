@@ -9,6 +9,8 @@ public class Tenant
     public DateTime CreatedAt { get; set; }
     public Tier Tier { get; set; }
     public string? LogoPath { get; set; }
+    public byte[]? LogoData { get; set; }
+    public string? LogoContentType { get; set; }
 
     public ICollection<User> Users { get; set; } = new List<User>();
     public ICollection<Project> Projects { get; set; } = new List<Project>();
