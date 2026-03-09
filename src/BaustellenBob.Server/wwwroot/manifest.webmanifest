@@ -1,6 +1,6 @@
 {
-  "name": "BaustellenBob",
-  "short_name": "BaustellenBob",
+  "name": "Structra",
+  "short_name": "Structra",
   "description": "Baustellen-Dokumentation für Handwerksbetriebe",
   "start_url": "/",
   "display": "standalone",

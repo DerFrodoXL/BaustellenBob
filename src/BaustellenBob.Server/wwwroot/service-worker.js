@@ -1,5 +1,5 @@
-// BaustellenBob Service Worker — offline caching for PWA
-const CACHE_NAME = 'baustellenbob-v2';
+// Structra Service Worker — offline caching for PWA
+const CACHE_NAME = 'structra-v1';
 const STATIC_ASSETS = [
     '/',
     '/manifest.webmanifest',
