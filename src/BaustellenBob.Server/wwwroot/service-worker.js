@@ -1,8 +1,9 @@
 // BaustellenBob Service Worker — offline caching for PWA
-const CACHE_NAME = 'baustellenbob-v1';
+const CACHE_NAME = 'baustellenbob-v2';
 const STATIC_ASSETS = [
     '/',
     '/manifest.webmanifest',
+    '/structra-logo.png',
     '/_content/MudBlazor/MudBlazor.min.css',
     '/_content/MudBlazor/MudBlazor.min.js',
     '/app.css',

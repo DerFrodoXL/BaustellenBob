@@ -23,6 +23,7 @@ public class ProjectService : IProjectService
     public async Task<List<ProjectDto>> GetAllAsync()
     {
         return await _db.Projects
+            .Include(b => b.Customer)
             .OrderByDescending(b => b.StartDate)
             .Select(b => ToDto(b))
             .ToListAsync();
@@ -30,7 +31,7 @@ public class ProjectService : IProjectService
 
     public async Task<ProjectDto?> GetByIdAsync(Guid id)
     {
-        var b = await _db.Projects.FindAsync(id);
+        var b = await _db.Projects.Include(b => b.Customer).FirstOrDefaultAsync(b => b.Id == id);
         return b is null ? null : ToDto(b);
     }
 
@@ -42,7 +43,7 @@ public class ProjectService : IProjectService
             Id = Guid.NewGuid(),
             TenantId = _tenantProvider.TenantId,
             Name = dto.Name,
-            Customer = dto.Customer,
+            CustomerId = dto.CustomerId,
             Address = dto.Address,
             StartDate = dto.StartDate,
             EndDate = dto.EndDate,
@@ -60,7 +61,7 @@ public class ProjectService : IProjectService
         var entity = await _db.Projects.FindAsync(dto.Id)
             ?? throw new InvalidOperationException("Project not found.");
         entity.Name = dto.Name;
-        entity.Customer = dto.Customer;
+        entity.CustomerId = dto.CustomerId;
         entity.Address = dto.Address;
         entity.StartDate = dto.StartDate;
         entity.EndDate = dto.EndDate;
@@ -81,7 +82,10 @@ public class ProjectService : IProjectService
     {
         Id = b.Id,
         Name = b.Name,
-        Customer = b.Customer,
+        CustomerId = b.CustomerId,
+        CustomerName = b.Customer?.Company is not null
+            ? $"{b.Customer.Name} ({b.Customer.Company})"
+            : b.Customer?.Name ?? string.Empty,
         Address = b.Address,
         StartDate = b.StartDate,
         EndDate = b.EndDate,

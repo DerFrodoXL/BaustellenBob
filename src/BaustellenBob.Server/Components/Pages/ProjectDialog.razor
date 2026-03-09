@@ -8,7 +8,13 @@
             <MudAlert Severity="Severity.Error" Class="mb-3">@_error</MudAlert>
         }
         <MudTextField @bind-Value="Model.Name" Label="Name" Required="true" Class="mb-3" />
-        <MudTextField @bind-Value="Model.Customer" Label="Kunde" Class="mb-3" />
+        <MudSelect T="Guid?" @bind-Value="Model.CustomerId" Label="Kunde" Clearable="true" Class="mb-3"
+                   ToStringFunc="@(id => _customers.FirstOrDefault(c => c.Id == id)?.DisplayName ?? string.Empty)">
+            @foreach (var c in _customers)
+            {
+                <MudSelectItem T="Guid?" Value="@c.Id">@c.DisplayName</MudSelectItem>
+            }
+        </MudSelect>
         <MudTextField @bind-Value="Model.Address" Label="Adresse" Class="mb-3" />
         <MudDatePicker @bind-Date="_startDate" Label="Startdatum" Class="mb-3" />
         <MudTextField @bind-Value="Model.Description" Label="Beschreibung" Lines="3" />
@@ -22,16 +28,19 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Inject] private IProjectService ProjectService { get; set; } = null!;
+    [Inject] private ICustomerService CustomerService { get; set; } = null!;
 
     [Parameter] public ProjectDto? Existing { get; set; }
 
     private ProjectDto Model { get; set; } = new() { StartDate = DateTime.Today };
     private DateTime? _startDate = DateTime.Today;
+    private List<CustomerDto> _customers = new();
     private bool IsEdit => Existing is not null;
     private string? _error;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        _customers = await CustomerService.GetAllAsync();
         if (Existing is not null)
         {
             Model = Existing;

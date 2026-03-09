@@ -12,4 +12,5 @@ public class Tenant
 
     public ICollection<User> Users { get; set; } = new List<User>();
     public ICollection<Project> Projects { get; set; } = new List<Project>();
+    public ICollection<Customer> Customers { get; set; } = new List<Customer>();
 }

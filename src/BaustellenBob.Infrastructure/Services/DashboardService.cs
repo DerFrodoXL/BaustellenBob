@@ -33,7 +33,10 @@ public class DashboardService : IDashboardService
             {
                 Id = p.Id,
                 Name = p.Name,
-                Customer = p.Customer,
+                CustomerId = p.CustomerId,
+                CustomerName = p.Customer != null
+                    ? (p.Customer.Company != null ? $"{p.Customer.Name} ({p.Customer.Company})" : p.Customer.Name)
+                    : string.Empty,
                 Address = p.Address,
                 StartDate = p.StartDate,
                 Status = p.Status
@@ -82,7 +85,9 @@ public class DashboardService : IDashboardService
             {
                 ProjectId = p.Id,
                 ProjectName = p.Name,
-                Customer = p.Customer,
+                Customer = p.Customer != null
+                    ? (p.Customer.Company != null ? $"{p.Customer.Name} ({p.Customer.Company})" : p.Customer.Name)
+                    : string.Empty,
                 Address = p.Address
             })
             .ToListAsync();

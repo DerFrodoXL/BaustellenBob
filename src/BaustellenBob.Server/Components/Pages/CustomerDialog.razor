@@ -1,0 +1,85 @@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(IsEdit ? "Kunde bearbeiten" : "Neuer Kunde")</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-3">@_error</MudAlert>
+        }
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Model.Name" Label="Name *" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Model.Company" Label="Firma" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Model.Phone" Label="Telefon" InputType="InputType.Telephone" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Model.Email" Label="E-Mail" InputType="InputType.Email" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="Model.Street" Label="Straße" />
+            </MudItem>
+            <MudItem xs="4">
+                <MudTextField @bind-Value="Model.Zip" Label="PLZ" />
+            </MudItem>
+            <MudItem xs="8">
+                <MudTextField @bind-Value="Model.City" Label="Ort" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Inject] private ICustomerService CustomerService { get; set; } = null!;
+
+    [Parameter] public CustomerDto? Existing { get; set; }
+
+    private CustomerDto Model { get; set; } = new();
+    private bool IsEdit => Existing is not null;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        if (Existing is not null)
+            Model = new CustomerDto
+            {
+                Id = Existing.Id,
+                Name = Existing.Name,
+                Company = Existing.Company,
+                Phone = Existing.Phone,
+                Email = Existing.Email,
+                Street = Existing.Street,
+                Zip = Existing.Zip,
+                City = Existing.City,
+                CreatedAt = Existing.CreatedAt
+            };
+    }
+
+    private async Task Save()
+    {
+        _error = null;
+        try
+        {
+            if (IsEdit)
+                await CustomerService.UpdateAsync(Model);
+            else
+                await CustomerService.CreateAsync(Model);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

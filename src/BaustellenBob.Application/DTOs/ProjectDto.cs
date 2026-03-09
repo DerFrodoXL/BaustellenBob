@@ -6,7 +6,8 @@ public class ProjectDto
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
-    public string Customer { get; set; } = string.Empty;
+    public Guid? CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
     public DateTime StartDate { get; set; }
     public DateTime? EndDate { get; set; }

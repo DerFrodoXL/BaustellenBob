@@ -50,7 +50,7 @@ else
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Name">@context.Name</MudTd>
-                <MudTd DataLabel="Kunde">@context.Customer</MudTd>
+                <MudTd DataLabel="Kunde">@context.CustomerName</MudTd>
                 <MudTd DataLabel="Adresse">@context.Address</MudTd>
                 <MudTd DataLabel="Status">
                     <MudChip T="string" Color="@GetStatusColor(context.Status)" Size="Size.Small">
@@ -75,7 +75,7 @@ else
                     <MudCard>
                         <MudCardContent>
                             <MudText Typo="Typo.h6">@b.Name</MudText>
-                            <MudText Typo="Typo.body2">@b.Customer</MudText>
+                            <MudText Typo="Typo.body2">@b.CustomerName</MudText>
                             <MudText Typo="Typo.body2" Class="mud-text-secondary">@b.Address</MudText>
                             <MudChip T="string" Color="@GetStatusColor(b.Status)" Size="Size.Small" Class="mt-2">
                                 @b.Status
@@ -107,7 +107,7 @@ else
         .Where(p => _statusFilter is null || p.Status == _statusFilter)
         .Where(p => string.IsNullOrWhiteSpace(_search)
             || p.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)
-            || p.Customer.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || p.CustomerName.Contains(_search, StringComparison.OrdinalIgnoreCase)
             || p.Address.Contains(_search, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()

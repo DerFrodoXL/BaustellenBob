@@ -21,7 +21,7 @@
                        AnchorOrigin="Origin.BottomCenter">
                 @foreach (var p in _projects)
                 {
-                    <MudSelectItem T="Guid?" Value="@((Guid?)p.Id)">@p.Name — @p.Customer</MudSelectItem>
+                    <MudSelectItem T="Guid?" Value="@((Guid?)p.Id)">@p.Name — @p.CustomerName</MudSelectItem>
                 }
             </MudSelect>
         </MudItem>

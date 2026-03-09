@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<Photo> Photos => Set<Photo>();
     public DbSet<WorkReport> WorkReports => Set<WorkReport>();
@@ -47,14 +48,29 @@ public class AppDbContext : DbContext
             e.HasQueryFilter(u => u.TenantId == _tenantProvider.TenantId);
         });
 
+        // Customer
+        builder.Entity<Customer>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Name).HasMaxLength(200).IsRequired();
+            e.Property(c => c.Company).HasMaxLength(200);
+            e.Property(c => c.Phone).HasMaxLength(50);
+            e.Property(c => c.Email).HasMaxLength(200);
+            e.Property(c => c.Street).HasMaxLength(300);
+            e.Property(c => c.Zip).HasMaxLength(20);
+            e.Property(c => c.City).HasMaxLength(100);
+            e.HasOne(c => c.Tenant).WithMany(t => t.Customers).HasForeignKey(c => c.TenantId);
+            e.HasQueryFilter(c => c.TenantId == _tenantProvider.TenantId);
+        });
+
         // Project
         builder.Entity<Project>(e =>
         {
             e.HasKey(b => b.Id);
             e.Property(b => b.Name).HasMaxLength(200).IsRequired();
-            e.Property(b => b.Customer).HasMaxLength(200);
             e.Property(b => b.Address).HasMaxLength(500);
             e.HasOne(b => b.Tenant).WithMany(t => t.Projects).HasForeignKey(b => b.TenantId);
+            e.HasOne(b => b.Customer).WithMany(c => c.Projects).HasForeignKey(b => b.CustomerId).IsRequired(false);
             e.HasQueryFilter(b => b.TenantId == _tenantProvider.TenantId);
         });
 
@@ -165,7 +181,6 @@ public class AppDbContext : DbContext
             Id = Guid.Parse("00000000-0000-0000-0000-000000000100"),
             TenantId = tenantId,
             Name = "Neubau Einfamilienhaus Müller",
-            Customer = "Familie Müller",
             Address = "Musterstraße 12, 80331 München",
             StartDate = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
             Status = ProjectStatus.Active,
@@ -199,7 +214,6 @@ public class AppDbContext : DbContext
             Id = Guid.Parse("00000000-0000-0000-0000-000000000200"),
             TenantId = tenant2Id,
             Name = "Badsanierung Villa Berger",
-            Customer = "Herr Berger",
             Address = "Bergstraße 5, 70173 Stuttgart",
             StartDate = new DateTime(2026, 2, 15, 0, 0, 0, DateTimeKind.Utc),
             Status = ProjectStatus.Active,

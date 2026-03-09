@@ -5,7 +5,7 @@
         <MudSelect T="Guid" @bind-Value="_selectedProjectId" Label="Baustelle auswählen" Required="true">
             @foreach (var p in Projects)
             {
-                <MudSelectItem T="Guid" Value="p.Id">@p.Name — @p.Customer</MudSelectItem>
+                <MudSelectItem T="Guid" Value="p.Id">@p.Name — @p.CustomerName</MudSelectItem>
             }
         </MudSelect>
         <MudText Typo="Typo.caption" Class="mt-2">

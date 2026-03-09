@@ -91,6 +91,7 @@ builder.Services.AddScoped<IMaterialService, MaterialService>();
 builder.Services.AddScoped<IProjectAssignmentService, ProjectAssignmentService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IProjectReportService>(sp =>
     new ProjectReportService(
         sp.GetRequiredService<AppDbContext>(),

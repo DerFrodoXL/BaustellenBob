@@ -54,7 +54,7 @@ public class InvoiceService : IInvoiceService
 
     public async Task<InvoiceDto> CreateFromProjectAsync(Guid projectId)
     {
-        var project = await _db.Projects.FindAsync(projectId)
+        var project = await _db.Projects.Include(p => p.Customer).FirstOrDefaultAsync(p => p.Id == projectId)
             ?? throw new InvalidOperationException("Project not found.");
 
         var materials = await _db.MaterialEntries
@@ -71,7 +71,7 @@ public class InvoiceService : IInvoiceService
             TenantId = _tenantProvider.TenantId,
             ProjectId = projectId,
             InvoiceNumber = invoiceNumber,
-            CustomerName = project.Customer,
+            CustomerName = project.Customer?.Name ?? string.Empty,
             CustomerAddress = project.Address,
             IssueDate = DateTime.UtcNow,
             DueDate = DateTime.UtcNow.AddDays(30),
