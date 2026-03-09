@@ -35,7 +35,7 @@
             <MudTextField @bind-Value="_activity" Label="Tätigkeit" Required="true" />
         </MudItem>
         <MudItem xs="12">
-            <MaterialLineItemEditor Items="_materialEntries" ItemsChanged="OnMaterialEntriesChanged" />
+            <MaterialLineItemEditor @ref="_materialEditor" Items="_materialEntries" ItemsChanged="OnMaterialEntriesChanged" />
         </MudItem>
 
         @* Photo attachment *@
@@ -104,6 +104,7 @@
     private bool _success;
     private string? _error;
     private List<PendingPhoto> _pendingPhotos = new();
+    private MaterialLineItemEditor? _materialEditor;
 
     protected override async Task OnInitializedAsync()
     {
@@ -143,6 +144,9 @@
         _saving = true;
         try
         {
+            if (_materialEditor is not null)
+                await _materialEditor.CommitDraftAsync();
+
             var dto = new WorkReportDto
             {
                 ReportDate = _reportDate ?? DateTime.Today,

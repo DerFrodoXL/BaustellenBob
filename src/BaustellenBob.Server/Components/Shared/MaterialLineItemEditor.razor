@@ -116,6 +116,11 @@
 
     private async Task AddItem()
     {
+        await CommitDraftAsync();
+    }
+
+    public async Task CommitDraftAsync()
+    {
         if (string.IsNullOrWhiteSpace(_name)) return;
         Items.Add(new MaterialEntryDto
         {

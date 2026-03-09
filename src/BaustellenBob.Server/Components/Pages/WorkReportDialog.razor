@@ -11,7 +11,7 @@
         <MudNumericField @bind-Value="Model.Hours" Label="Stunden" Min="0.25m" Max="24m" Step="0.25m" Class="mb-3" />
         <MudTextField @bind-Value="Model.Activity" Label="Tätigkeit" Required="true" Lines="3" Class="mb-3" />
         <div class="mb-3">
-            <MaterialLineItemEditor Items="Model.MaterialEntries" ItemsChanged="OnMaterialEntriesChanged" />
+            <MaterialLineItemEditor @ref="_materialEditor" Items="Model.MaterialEntries" ItemsChanged="OnMaterialEntriesChanged" />
         </div>
 
         @* Camera photo attachment *@
@@ -74,6 +74,7 @@
     private bool _saving;
     private string? _error;
     private List<PendingPhoto> _pendingPhotos = new();
+    private MaterialLineItemEditor? _materialEditor;
 
     protected override void OnParametersSet()
     {
@@ -122,6 +123,9 @@
         _saving = true;
         try
         {
+            if (_materialEditor is not null)
+                await _materialEditor.CommitDraftAsync();
+
             Model.ReportDate = _reportDate ?? DateTime.Today;
             WorkReportDto saved;
             if (_isEdit)
