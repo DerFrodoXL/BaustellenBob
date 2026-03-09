@@ -131,6 +131,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
 
+// .NET 10 serves framework/package web assets through endpoint mapping.
+app.MapStaticAssets();
+
 // Login endpoint (minimal API — Blazor SSR posts here)
 app.MapPost("/api/auth/login", async (HttpContext ctx, IAuthService authService) =>
 {

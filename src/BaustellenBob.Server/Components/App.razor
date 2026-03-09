@@ -14,6 +14,7 @@
     <link rel="apple-touch-icon" href="structra-logo.png" />
     <meta name="theme-color" content="#594AE2" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Structra" />
     <HeadOutlet @rendermode="InteractiveServer" />
@@ -25,7 +26,16 @@
     <script src="_framework/blazor.web.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js');
+            // Prevent stale cached shell/assets from breaking fresh deployments.
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                registrations.forEach(registration => registration.unregister());
+            });
+
+            if ('caches' in window) {
+                caches.keys().then(keys => {
+                    keys.forEach(key => caches.delete(key));
+                });
+            }
         }
     </script>
 </body>
