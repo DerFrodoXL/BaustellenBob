@@ -10,7 +10,9 @@
         <MudDatePicker @bind-Date="_reportDate" Label="Datum" Required="true" Class="mb-3" />
         <MudNumericField @bind-Value="Model.Hours" Label="Stunden" Min="0.25m" Max="24m" Step="0.25m" Class="mb-3" />
         <MudTextField @bind-Value="Model.Activity" Label="Tätigkeit" Required="true" Lines="3" Class="mb-3" />
-        <MudTextField @bind-Value="Model.Material" Label="Material" Lines="2" Class="mb-3" />
+        <div class="mb-3">
+            <MaterialLineItemEditor Items="Model.MaterialEntries" ItemsChanged="OnMaterialEntriesChanged" />
+        </div>
 
         @* Camera photo attachment *@
         <MudText Typo="Typo.subtitle2" Class="mb-2">Fotos</MudText>
@@ -85,7 +87,17 @@
                 Hours = Existing.Hours,
                 Activity = Existing.Activity,
                 Material = Existing.Material,
-                ReportDate = Existing.ReportDate
+                ReportDate = Existing.ReportDate,
+                MaterialEntries = Existing.MaterialEntries.Select(m => new MaterialEntryDto
+                {
+                    Id = m.Id,
+                    Name = m.Name,
+                    Quantity = m.Quantity,
+                    Unit = m.Unit,
+                    UnitPrice = m.UnitPrice,
+                    WorkReportId = m.WorkReportId,
+                    IsInvoiced = m.IsInvoiced
+                }).ToList()
             };
             _reportDate = Existing.ReportDate;
         }
@@ -153,6 +165,8 @@
     }
 
     private void Cancel() => MudDialog.Cancel();
+
+    private void OnMaterialEntriesChanged(List<MaterialEntryDto> items) => Model.MaterialEntries = items;
 
     private record PendingPhoto(IBrowserFile File, string Preview);
 }

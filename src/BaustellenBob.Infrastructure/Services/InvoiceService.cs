@@ -58,7 +58,7 @@ public class InvoiceService : IInvoiceService
             ?? throw new InvalidOperationException("Project not found.");
 
         var materials = await _db.MaterialEntries
-            .Where(m => m.ProjectId == projectId)
+            .Where(m => m.ProjectId == projectId && !m.IsInvoiced)
             .ToListAsync();
 
         // Generate next invoice number for this tenant
@@ -90,6 +90,8 @@ public class InvoiceService : IInvoiceService
         };
 
         _db.Set<Invoice>().Add(invoice);
+        // Mark materials as invoiced
+        foreach (var m in materials) m.IsInvoiced = true;
         await _db.SaveChangesAsync();
 
         // Reload with navigation properties

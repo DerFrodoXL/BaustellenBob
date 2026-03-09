@@ -35,7 +35,7 @@
             <MudTextField @bind-Value="_activity" Label="Tätigkeit" Required="true" />
         </MudItem>
         <MudItem xs="12">
-            <MudTextField @bind-Value="_material" Label="Material (optional)" />
+            <MaterialLineItemEditor Items="_materialEntries" ItemsChanged="OnMaterialEntriesChanged" />
         </MudItem>
 
         @* Photo attachment *@
@@ -99,7 +99,7 @@
     private DateTime? _reportDate = DateTime.Today;
     private decimal _hours = 8;
     private string _activity = string.Empty;
-    private string _material = string.Empty;
+    private List<MaterialEntryDto> _materialEntries = new();
     private bool _saving;
     private bool _success;
     private string? _error;
@@ -148,7 +148,7 @@
                 ReportDate = _reportDate ?? DateTime.Today,
                 Hours = _hours,
                 Activity = _activity,
-                Material = _material
+                MaterialEntries = _materialEntries
             };
             var saved = await WorkReportService.CreateAsync(_selectedProjectId.Value, dto);
 
@@ -171,7 +171,7 @@
 
             // Reset form for next entry but keep project selection
             _activity = string.Empty;
-            _material = string.Empty;
+            _materialEntries = new();
             _hours = 8;
             _reportDate = DateTime.Today;
             _pendingPhotos.Clear();
@@ -191,4 +191,6 @@
     }
 
     private record PendingPhoto(IBrowserFile File, string Preview);
+
+    private void OnMaterialEntriesChanged(List<MaterialEntryDto> items) => _materialEntries = items;
 }

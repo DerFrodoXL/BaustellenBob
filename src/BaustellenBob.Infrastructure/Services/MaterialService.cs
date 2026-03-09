@@ -27,12 +27,27 @@ public class MaterialService : IMaterialService
             {
                 Id = m.Id,
                 ProjectId = m.ProjectId,
+                WorkReportId = m.WorkReportId,
                 Name = m.Name,
                 Quantity = m.Quantity,
                 Unit = m.Unit,
                 UnitPrice = m.UnitPrice,
+                IsInvoiced = m.IsInvoiced,
                 CreatedAt = m.CreatedAt
             })
+            .ToListAsync();
+    }
+
+    public async Task<List<string>> GetSuggestionsAsync(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return [];
+        var lower = query.ToLower();
+        return await _db.MaterialEntries
+            .Where(m => m.Name.ToLower().Contains(lower))
+            .Select(m => m.Name)
+            .Distinct()
+            .OrderBy(n => n)
+            .Take(10)
             .ToListAsync();
     }
 
@@ -43,10 +58,12 @@ public class MaterialService : IMaterialService
             Id = Guid.NewGuid(),
             TenantId = _tenantProvider.TenantId,
             ProjectId = projectId,
+            WorkReportId = dto.WorkReportId,
             Name = dto.Name,
             Quantity = dto.Quantity,
             Unit = dto.Unit,
             UnitPrice = dto.UnitPrice,
+            IsInvoiced = false,
             CreatedAt = DateTime.UtcNow
         };
         _db.MaterialEntries.Add(entity);

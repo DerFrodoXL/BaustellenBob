@@ -11,4 +11,5 @@ public class WorkReportDto
     public string Material { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public int PhotoCount { get; set; }
+    public List<MaterialEntryDto> MaterialEntries { get; set; } = new();
 }

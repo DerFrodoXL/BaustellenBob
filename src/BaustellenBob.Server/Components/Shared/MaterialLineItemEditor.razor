@@ -1,0 +1,138 @@
+@inject IMaterialService MaterialService
+
+<div>
+    <MudText Typo="Typo.subtitle2" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Small" Class="mr-1" />
+        Material
+    </MudText>
+
+    <MudGrid Spacing="1" Class="mb-2">
+        <MudItem xs="12" sm="5">
+            <MudAutocomplete T="string"
+                             @bind-Value="_name"
+                             Label="Bezeichnung"
+                             SearchFunc="SearchAsync"
+                             Strict="false"
+                             CoerceText="true"
+                             CoerceValue="true"
+                             ResetValueOnEmptyText="false"
+                             Clearable="true"
+                             Placeholder="z.B. Beton C25/30, Estrich 25 kg ..."
+                             Dense="true" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="5" sm="2">
+            <MudNumericField @bind-Value="_qty" Label="Menge"
+                             Min="0.01m" Step="1m"
+                             Dense="true" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="7" sm="2">
+            <MudSelect @bind-Value="_unit" Label="Einheit"
+                       Dense="true" Margin="Margin.Dense">
+                @foreach (var u in _units)
+                {
+                    <MudSelectItem Value="@u">@u</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="9" sm="2">
+            <MudNumericField @bind-Value="_unitPrice" Label="Preis/Einh. (opt.)"
+                             Min="0m" Step="0.50m" Format="F2"
+                             Dense="true" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="3" sm="1" Class="d-flex align-center justify-center">
+            <MudIconButton Icon="@Icons.Material.Filled.AddCircle"
+                           Color="Color.Primary" Size="Size.Medium"
+                           Title="Position hinzufügen"
+                           Disabled="@string.IsNullOrWhiteSpace(_name)"
+                           OnClick="AddItem" />
+        </MudItem>
+    </MudGrid>
+
+    @if (Items.Count > 0)
+    {
+        <MudTable Items="Items" Dense="true" Hover="false" Outlined="true" Class="mb-1">
+            <HeaderContent>
+                <MudTh>Bezeichnung</MudTh>
+                <MudTh Style="text-align:right">Menge</MudTh>
+                <MudTh>Einh.</MudTh>
+                <MudTh Style="text-align:right">Preis</MudTh>
+                <MudTh Style="text-align:right">Total</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Bezeichnung">@context.Name</MudTd>
+                <MudTd DataLabel="Menge" Style="text-align:right">@context.Quantity.ToString("G29")</MudTd>
+                <MudTd DataLabel="Einheit">@context.Unit</MudTd>
+                <MudTd DataLabel="Preis" Style="text-align:right">
+                    @(context.UnitPrice > 0 ? $"CHF {context.UnitPrice:F2}" : "—")
+                </MudTd>
+                <MudTd DataLabel="Total" Style="text-align:right">
+                    @(context.UnitPrice > 0 ? $"CHF {context.TotalPrice:F2}" : "—")
+                </MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.RemoveCircleOutline"
+                                   Size="Size.Small" Color="Color.Error"
+                                   Title="Entfernen"
+                                   OnClick="@(() => RemoveItem(context))" />
+                </MudTd>
+            </RowTemplate>
+            <FooterContent>
+                @if (Items.Any(i => i.UnitPrice > 0))
+                {
+                    <MudTd colspan="4" Style="text-align:right">
+                        <MudText Typo="Typo.body2"><b>Total</b></MudText>
+                    </MudTd>
+                    <MudTd Style="text-align:right">
+                        <MudText Typo="Typo.body2"><b>CHF @Items.Sum(i => i.TotalPrice).ToString("F2")</b></MudText>
+                    </MudTd>
+                    <MudTd></MudTd>
+                }
+            </FooterContent>
+        </MudTable>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+            @Items.Count Position(en) — werden beim Speichern des Rapports als Materialentnahme erfasst und in der nächsten Rechnung vorbelegt.
+        </MudText>
+    }
+</div>
+
+@code {
+    [Parameter] public List<MaterialEntryDto> Items { get; set; } = new();
+    [Parameter] public EventCallback<List<MaterialEntryDto>> ItemsChanged { get; set; }
+
+    private string _name = string.Empty;
+    private decimal _qty = 1;
+    private string _unit = "Stk";
+    private decimal _unitPrice = 0;
+
+    private static readonly string[] _units =
+        ["Stk", "m", "m²", "m³", "kg", "t", "L", "h", "Psch"];
+
+    private async Task<IEnumerable<string>> SearchAsync(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return [];
+        return await MaterialService.GetSuggestionsAsync(value);
+    }
+
+    private async Task AddItem()
+    {
+        if (string.IsNullOrWhiteSpace(_name)) return;
+        Items.Add(new MaterialEntryDto
+        {
+            Id = Guid.NewGuid(),
+            Name = _name.Trim(),
+            Quantity = _qty,
+            Unit = _unit,
+            UnitPrice = _unitPrice,
+        });
+        await ItemsChanged.InvokeAsync(Items);
+        _name = string.Empty;
+        _qty = 1;
+        _unitPrice = 0;
+    }
+
+    private async Task RemoveItem(MaterialEntryDto item)
+    {
+        Items.Remove(item);
+        await ItemsChanged.InvokeAsync(Items);
+    }
+}

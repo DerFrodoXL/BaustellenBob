@@ -24,27 +24,49 @@ public class WorkReportService : IWorkReportService
 
     public async Task<List<WorkReportDto>> GetByProjectAsync(Guid projectId)
     {
-        return await _db.WorkReports
+        var reports = await _db.WorkReports
             .Where(w => w.ProjectId == projectId)
+            .Include(w => w.User)
+            .Include(w => w.Photos)
+            .Include(w => w.MaterialEntries)
             .OrderByDescending(w => w.ReportDate)
-            .Select(w => new WorkReportDto
-            {
-                Id = w.Id,
-                ProjectId = w.ProjectId,
-                UserName = w.User.Name,
-                ReportDate = w.ReportDate,
-                Hours = w.Hours,
-                Activity = w.Activity,
-                Material = w.Material,
-                CreatedAt = w.CreatedAt,
-                PhotoCount = w.Photos.Count
-            })
             .ToListAsync();
+
+        return reports.Select(w => new WorkReportDto
+        {
+            Id = w.Id,
+            ProjectId = w.ProjectId,
+            UserName = w.User.Name,
+            ReportDate = w.ReportDate,
+            Hours = w.Hours,
+            Activity = w.Activity,
+            Material = w.Material,
+            CreatedAt = w.CreatedAt,
+            PhotoCount = w.Photos.Count,
+            MaterialEntries = w.MaterialEntries.Select(m => new MaterialEntryDto
+            {
+                Id = m.Id,
+                ProjectId = m.ProjectId,
+                WorkReportId = m.WorkReportId,
+                Name = m.Name,
+                Quantity = m.Quantity,
+                Unit = m.Unit,
+                UnitPrice = m.UnitPrice,
+                IsInvoiced = m.IsInvoiced,
+                CreatedAt = m.CreatedAt
+            }).ToList()
+        }).ToList();
     }
 
     public async Task<WorkReportDto> CreateAsync(Guid projectId, WorkReportDto dto)
     {
         await _tierLimits.EnsureCanCreateReportAsync();
+
+        // Build a summary string from material entries for backward compat
+        var materialSummary = dto.MaterialEntries.Count > 0
+            ? string.Join(", ", dto.MaterialEntries.Select(m => $"{m.Quantity} {m.Unit} {m.Name}"))
+            : dto.Material;
+
         var entity = new WorkReport
         {
             Id = Guid.NewGuid(),
@@ -54,10 +76,29 @@ public class WorkReportService : IWorkReportService
             ReportDate = dto.ReportDate,
             Hours = dto.Hours,
             Activity = dto.Activity,
-            Material = dto.Material,
+            Material = materialSummary,
             CreatedAt = DateTime.UtcNow
         };
         _db.WorkReports.Add(entity);
+
+        // Create linked material entries
+        foreach (var m in dto.MaterialEntries)
+        {
+            _db.MaterialEntries.Add(new BaustellenBob.Domain.Entities.MaterialEntry
+            {
+                Id = Guid.NewGuid(),
+                TenantId = _tenantProvider.TenantId,
+                ProjectId = projectId,
+                WorkReportId = entity.Id,
+                Name = m.Name,
+                Quantity = m.Quantity,
+                Unit = m.Unit,
+                UnitPrice = m.UnitPrice,
+                IsInvoiced = false,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
         await _db.SaveChangesAsync();
 
         dto.Id = entity.Id;
@@ -73,7 +114,35 @@ public class WorkReportService : IWorkReportService
         entity.ReportDate = dto.ReportDate;
         entity.Hours = dto.Hours;
         entity.Activity = dto.Activity;
-        entity.Material = dto.Material;
+
+        // Replace material entries
+        var existing = await _db.MaterialEntries
+            .Where(m => m.WorkReportId == dto.Id)
+            .ToListAsync();
+        _db.MaterialEntries.RemoveRange(existing);
+
+        var materialSummary = dto.MaterialEntries.Count > 0
+            ? string.Join(", ", dto.MaterialEntries.Select(m => $"{m.Quantity} {m.Unit} {m.Name}"))
+            : dto.Material;
+        entity.Material = materialSummary;
+
+        foreach (var m in dto.MaterialEntries)
+        {
+            _db.MaterialEntries.Add(new BaustellenBob.Domain.Entities.MaterialEntry
+            {
+                Id = Guid.NewGuid(),
+                TenantId = entity.TenantId,
+                ProjectId = entity.ProjectId,
+                WorkReportId = entity.Id,
+                Name = m.Name,
+                Quantity = m.Quantity,
+                Unit = m.Unit,
+                UnitPrice = m.UnitPrice,
+                IsInvoiced = false,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
         await _db.SaveChangesAsync();
     }
 

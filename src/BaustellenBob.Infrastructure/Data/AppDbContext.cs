@@ -112,6 +112,7 @@ public class AppDbContext : DbContext
             e.Property(m => m.Quantity).HasPrecision(10, 2);
             e.Property(m => m.UnitPrice).HasPrecision(10, 2);
             e.HasOne(m => m.Project).WithMany(b => b.Materials).HasForeignKey(m => m.ProjectId);
+            e.HasOne(m => m.WorkReport).WithMany(w => w.MaterialEntries).HasForeignKey(m => m.WorkReportId).IsRequired(false);
             e.HasQueryFilter(m => m.TenantId == _tenantProvider.TenantId);
         });
 

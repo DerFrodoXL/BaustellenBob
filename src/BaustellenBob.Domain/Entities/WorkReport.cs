@@ -13,4 +13,5 @@ public class WorkReport : BaseEntity
     public Project Project { get; set; } = null!;
     public User User { get; set; } = null!;
     public ICollection<Photo> Photos { get; set; } = new List<Photo>();
+    public ICollection<MaterialEntry> MaterialEntries { get; set; } = new List<MaterialEntry>();
 }
