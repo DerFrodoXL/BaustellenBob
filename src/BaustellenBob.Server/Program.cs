@@ -147,7 +147,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
 
-// .NET 10 serves framework/package web assets through endpoint mapping.
+// Serve framework/package web assets via endpoint routing (replaces UseStaticFiles for _framework, _content).
 app.MapStaticAssets();
 
 // Login endpoint (minimal API — Blazor SSR posts here)
