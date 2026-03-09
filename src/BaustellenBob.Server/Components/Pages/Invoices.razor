@@ -30,10 +30,17 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="3" Class="d-flex align-end">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
-                    Neue Rechnung
-                </MudButton>
+                <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+                        Neue Rechnung
+                    </MudButton>
+                </MudHidden>
+                <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                    <MudTooltip Text="Neue Rechnung">
+                        <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="OpenCreateDialog" />
+                    </MudTooltip>
+                </MudHidden>
             </MudItem>
         </MudGrid>
     </MudPaper>
@@ -95,8 +102,20 @@
                         <MudChip T="string" Color="@StatusColor(inv.Status)" Size="Size.Small" Class="mt-2">@StatusLabel(inv.Status)</MudChip>
                     </MudCardContent>
                     <MudCardActions>
-                        <MudButton Size="Size.Small" OnClick="@(() => GoToInvoice(inv.Id))">Details</MudButton>
-                        <MudButton Size="Size.Small" OnClick="() => OpenPdfAsync(inv.Id)">PDF</MudButton>
+                        <MudHidden Breakpoint="Breakpoint.Xs">
+                            <MudButton Size="Size.Small" OnClick="@(() => GoToInvoice(inv.Id))">Details</MudButton>
+                            <MudButton Size="Size.Small" OnClick="() => OpenPdfAsync(inv.Id)">PDF</MudButton>
+                        </MudHidden>
+                        <MudHidden Breakpoint="Breakpoint.SmAndUp">
+                            <MudTooltip Text="Details">
+                                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                                               OnClick="@(() => GoToInvoice(inv.Id))" />
+                            </MudTooltip>
+                            <MudTooltip Text="PDF">
+                                <MudIconButton Icon="@Icons.Material.Filled.PictureAsPdf" Size="Size.Small"
+                                               OnClick="() => OpenPdfAsync(inv.Id)" />
+                            </MudTooltip>
+                        </MudHidden>
                     </MudCardActions>
                 </MudCard>
             }
