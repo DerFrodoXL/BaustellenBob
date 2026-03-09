@@ -23,7 +23,25 @@
 <body>
     <Routes @rendermode="InteractiveServer" />
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
-    <script src="_framework/blazor.web.js"></script>
+    <script>
+        (function () {
+            function loadScript(src, onError) {
+                var script = document.createElement('script');
+                script.src = src;
+                script.defer = true;
+                if (onError) {
+                    script.onerror = onError;
+                }
+                document.body.appendChild(script);
+            }
+
+            // Primary loader for modern Blazor Web App bootstrapping.
+            loadScript('/_framework/blazor.web.js', function () {
+                // Fallback for hosts/runtimes where only server bootstrap is available.
+                loadScript('/_framework/blazor.server.js');
+            });
+        })();
+    </script>
     <script>
         if ('serviceWorker' in navigator) {
             // Prevent stale cached shell/assets from breaking fresh deployments.
