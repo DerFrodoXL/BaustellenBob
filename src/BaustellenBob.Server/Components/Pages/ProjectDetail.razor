@@ -300,7 +300,8 @@ else
         {
             { x => x.Existing, _project }
         };
-        var dialog = await DialogService.ShowAsync<ProjectDialog>("Baustelle bearbeiten", parameters);
+        var dialog = await DialogService.ShowAsync<ProjectDialog>("Baustelle bearbeiten", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
         var result = await dialog.Result;
         if (result is not null && !result.Canceled)
         {

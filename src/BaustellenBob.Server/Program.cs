@@ -20,7 +20,8 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Host=localhost;Port=5432;Database=baustellenbob;Username=postgres;Password=postgres";
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseNpgsql(connectionString),
+    contextLifetime: ServiceLifetime.Transient);
 
 // Cookie Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -64,6 +65,7 @@ builder.Services.AddHttpContextAccessor();
 // Tenant + User providers (resolved from claims)
 builder.Services.AddScoped<ITenantProvider, TenantProvider>();
 builder.Services.AddScoped<ICurrentUserProvider, CurrentUserProvider>();
+builder.Services.AddScoped<UserUiStateService>();
 
 // Application services
 builder.Services.AddScoped<IAuthService, AuthService>();

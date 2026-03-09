@@ -1,6 +1,8 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using BaustellenBob.Server.Services
 
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -39,7 +41,7 @@
                 <MudAvatar Style="width:36px;height:36px;margin-right:8px;" Color="Color.Secondary">
                     @if (!string.IsNullOrEmpty(_userAvatarPath))
                     {
-                        <img src="@($"/uploads/{_userAvatarPath}")" alt="Profilbild"
+                        <img src="@($"/uploads/{_userAvatarPath}?v={_userAvatarVersion}")" alt="Profilbild"
                              style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />
                     }
                     else
@@ -76,14 +78,19 @@
     [Inject] private ITenantService TenantService { get; set; } = null!;
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
+    [Inject] private UserUiStateService UserUiStateService { get; set; } = null!;
 
     private bool _drawerOpen = true;
     private string? _logoPath;
     private string? _tenantName;
     private string? _userAvatarPath;
+    private Guid? _currentUserId;
+    private long _userAvatarVersion;
 
     protected override async Task OnInitializedAsync()
     {
+        UserUiStateService.AvatarChanged += OnAvatarChanged;
+
         // Tenant name comes from claims – no DB needed, safe during prerender
         try
         {
@@ -106,7 +113,11 @@
 
             var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (Guid.TryParse(userIdClaim, out var userId))
-                await Task.WhenAll(LoadLogo(), LoadUserAvatar(userId));
+            {
+                _currentUserId = userId;
+                await LoadLogo();
+                await LoadUserAvatar(userId);
+            }
             else
                 await LoadLogo();
 
@@ -122,11 +133,31 @@
 
     private async Task LoadUserAvatar(Guid userId)
     {
-        try { _userAvatarPath = await UserService.GetProfilePicturePathAsync(userId); } catch { }
+        try
+        {
+            _userAvatarPath = await UserService.GetProfilePicturePathAsync(userId);
+            _userAvatarVersion = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        }
+        catch { }
+    }
+
+    private void OnAvatarChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (_currentUserId is null) return;
+            await LoadUserAvatar(_currentUserId.Value);
+            StateHasChanged();
+        });
     }
 
     private void ToggleDrawer()
     {
         _drawerOpen = !_drawerOpen;
+    }
+
+    public void Dispose()
+    {
+        UserUiStateService.AvatarChanged -= OnAvatarChanged;
     }
 }

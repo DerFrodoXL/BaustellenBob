@@ -134,7 +134,8 @@ else
 
     private async Task OpenCreateDialog()
     {
-        var dialog = await DialogService.ShowAsync<ProjectDialog>("Neue Baustelle");
+        var dialog = await DialogService.ShowAsync<ProjectDialog>("Neue Baustelle",
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
         var result = await dialog.Result;
         if (result is not null && !result.Canceled)
         {

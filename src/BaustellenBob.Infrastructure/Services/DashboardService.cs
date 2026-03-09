@@ -73,6 +73,49 @@ public class DashboardService : IDashboardService
             .Take(8)
             .ToList();
 
+        // Timeline: active projects with today's assigned workers
+        var today = DateTime.Today;
+        var activeProjects = await _db.Projects
+            .Where(p => p.Status == ProjectStatus.Active)
+            .OrderBy(p => p.Name)
+            .Select(p => new TimelineProjectDto
+            {
+                ProjectId = p.Id,
+                ProjectName = p.Name,
+                Customer = p.Customer,
+                Address = p.Address
+            })
+            .ToListAsync();
+
+        var projectIds = activeProjects.Select(p => p.ProjectId).ToList();
+        var assignments = await _db.ProjectAssignments
+            .Where(a => projectIds.Contains(a.ProjectId) && a.StartDate <= today && a.EndDate >= today)
+            .Select(a => new
+            {
+                a.ProjectId,
+                Worker = new TimelineWorkerDto
+                {
+                    UserId = a.UserId,
+                    Name = a.User.Name,
+                    ProfilePicturePath = a.User.ProfilePicturePath,
+                    StartDate = a.StartDate,
+                    EndDate = a.EndDate,
+                    Notes = a.Notes
+                }
+            })
+            .ToListAsync();
+
+        var workersByProject = assignments.GroupBy(a => a.ProjectId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Worker).ToList());
+
+        foreach (var p in activeProjects)
+        {
+            if (workersByProject.TryGetValue(p.ProjectId, out var workers))
+                p.Workers = workers;
+        }
+
+        dto.TimelineProjects = activeProjects;
+
         return dto;
     }
 }

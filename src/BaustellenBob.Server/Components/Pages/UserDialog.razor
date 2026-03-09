@@ -1,3 +1,5 @@
+@using BaustellenBob.Server.Services
+
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">@(_isEdit ? "Mitarbeiter bearbeiten" : "Neuer Mitarbeiter")</MudText>
@@ -57,6 +59,7 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IJSRuntime _jsRuntime { get; set; } = null!;
+    [Inject] private UserUiStateService UserUiStateService { get; set; } = null!;
 
     [Parameter] public UserDto? Existing { get; set; }
 
@@ -139,6 +142,7 @@
     {
         using var stream = _pendingAvatar!.OpenReadStream(5 * 1024 * 1024);
         await UserService.UploadProfilePictureAsync(userId, _pendingAvatar.Name, stream);
+        UserUiStateService.NotifyAvatarChanged();
     }
 
     private void Cancel() => MudDialog.Cancel();

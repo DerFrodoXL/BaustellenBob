@@ -1,7 +1,7 @@
 ﻿@page "/"
 @attribute [Authorize]
 
-<PageTitle>BaustellenBob - Dashboard</PageTitle>
+<PageTitle>BauBob - Dashboard</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-4">Dashboard</MudText>
 
@@ -90,6 +90,97 @@ else
             }
         </MudGrid>
     }
+
+    @* Timeline: Baustellen & Mitarbeiter – nur für Admin/Büro *@
+    <AuthorizeView Roles="Admin,Office">
+        <Authorized>
+            @if (_dashboard.TimelineProjects.Any())
+            {
+                <MudText Typo="Typo.h6" Class="mt-6 mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Engineering" Class="mr-1" Style="vertical-align:middle;" />
+                    Heute auf den Baustellen
+                </MudText>
+
+                <MudTimeline TimelinePosition="TimelinePosition.Start">
+                    @foreach (var project in _dashboard.TimelineProjects)
+                    {
+                        var hasWorkers = project.Workers.Any();
+                        <MudTimelineItem Color="@(hasWorkers ? Color.Primary : Color.Default)"
+                                         Variant="Variant.Filled"
+                                         Icon="@(hasWorkers ? Icons.Material.Filled.Construction : Icons.Material.Filled.WarningAmber)"
+                                         Size="Size.Medium">
+                            <ItemContent>
+                                <MudCard Outlined="true" Class="mb-2">
+                                    <MudCardContent Class="pa-3">
+                                        <div class="d-flex justify-space-between align-center flex-wrap">
+                                            <div>
+                                                <MudLink Typo="Typo.subtitle1" Href="@($"/projects/{project.ProjectId}")" Class="fw-bold">
+                                                    @project.ProjectName
+                                                </MudLink>
+                                                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                                    @project.Customer@(string.IsNullOrEmpty(project.Address) ? "" : $" — {project.Address}")
+                                                </MudText>
+                                                <MudText Typo="Typo.caption" Class="mud-text-secondary mt-1 d-flex align-center">
+                                                    <MudIcon Icon="@(hasWorkers ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.WarningAmber)"
+                                                             Size="Size.Small" Class="mr-1"
+                                                             Color="@(hasWorkers ? Color.Success : Color.Warning)" />
+                                                    @(hasWorkers ? "Aktiv besetzt durch:" : "Heute nicht besetzt")
+                                                </MudText>
+                                            </div>
+                                            <MudChip T="string" Size="Size.Small"
+                                                     Color="@(hasWorkers ? Color.Success : Color.Warning)">
+                                                @(hasWorkers ? $"{project.Workers.Count} MA" : "Nicht besetzt")
+                                            </MudChip>
+                                        </div>
+
+                                        @if (hasWorkers)
+                                        {
+                                            <div class="d-flex flex-wrap gap-3 mt-3">
+                                                @foreach (var w in project.Workers)
+                                                {
+                                                    <div class="d-flex align-start gap-2">
+                                                        <MudAvatar Size="Size.Small" Color="Color.Secondary">
+                                                            @if (!string.IsNullOrEmpty(w.ProfilePicturePath))
+                                                            {
+                                                                <img src="@($"/uploads/{w.ProfilePicturePath}")" alt="@w.Name"
+                                                                     style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />
+                                                            }
+                                                            else
+                                                            {
+                                                                @w.Name[0].ToString().ToUpper()
+                                                            }
+                                                        </MudAvatar>
+                                                        <div>
+                                                            <MudText Typo="Typo.body2">@w.Name</MudText>
+                                                            @if (!string.IsNullOrEmpty(w.Notes))
+                                                            {
+                                                                <MudText Typo="Typo.caption" Class="mud-text-secondary d-flex align-center">
+                                                                    <MudIcon Icon="@Icons.Material.Filled.Notes" Size="Size.Small" Class="mr-1" />
+                                                                    @w.Notes
+                                                                </MudText>
+                                                            }
+                                                            <MudText Typo="Typo.caption" Class="mud-text-secondary d-flex align-center mt-1">
+                                                                <MudIcon Icon="@Icons.Material.Filled.DateRange" Size="Size.Small" Class="mr-1" />
+                                                                @w.StartDate.ToString("dd.MM.") – @w.EndDate.ToString("dd.MM.")
+                                                            </MudText>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    </MudCardContent>
+                                </MudCard>
+                            </ItemContent>
+                        </MudTimelineItem>
+                    }
+                </MudTimeline>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-6">Keine aktiven Baustellen vorhanden.</MudAlert>
+            }
+        </Authorized>
+    </AuthorizeView>
 }
 
 @code {
