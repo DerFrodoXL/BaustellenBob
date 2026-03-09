@@ -295,8 +295,8 @@ app.MapGet("/api/projects/{projectId:guid}/report", async (Guid projectId, IProj
 {
     if (!await tierLimitService.CanExportPdfAsync())
         return Results.Problem(
-            title: "PDF-Export nicht verfugbar",
-            detail: "Ihr aktueller Tarif unterstutzt keinen PDF-Export.",
+            title: "PDF-Export nicht verfügbar",
+            detail: "Ihr aktueller Tarif unterstützt keinen PDF-Export.",
             statusCode: StatusCodes.Status403Forbidden);
 
     var pdf = await reportService.GenerateReportAsync(projectId);
@@ -308,8 +308,8 @@ app.MapGet("/api/invoices/{invoiceId:guid}/pdf", async (Guid invoiceId, IInvoice
 {
     if (!await tierLimitService.CanExportPdfAsync())
         return Results.Problem(
-            title: "PDF-Export nicht verfugbar",
-            detail: "Ihr aktueller Tarif unterstutzt keinen PDF-Export.",
+            title: "PDF-Export nicht verfügbar",
+            detail: "Ihr aktueller Tarif unterstützt keinen PDF-Export.",
             statusCode: StatusCodes.Status403Forbidden);
 
     var pdf = await invoiceService.GenerateInvoicePdfAsync(invoiceId);
