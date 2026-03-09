@@ -1,4 +1,5 @@
 using BaustellenBob.Application.Interfaces;
+using Microsoft.AspNetCore.HttpOverrides;
 using BaustellenBob.Infrastructure.Data;
 using BaustellenBob.Infrastructure.Services;
 using BaustellenBob.Server.Components;
@@ -118,6 +119,13 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
+// Trust Railway's (and other reverse proxies') X-Forwarded-Proto / X-Forwarded-For headers
+// so UseHttpsRedirection works correctly behind the TLS-terminating edge.
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
