@@ -162,74 +162,9 @@ public class AppDbContext : DbContext
             e.HasIndex(k => k.KeyHash);
         });
 
-        // Seed demo data
-        var tenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-        var userId = Guid.Parse("00000000-0000-0000-0000-000000000010");
+    
+     
 
-        builder.Entity<Tenant>().HasData(new Tenant
-        {
-            Id = tenantId,
-            Name = "Demo Handwerk GmbH",
-            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-            Tier = Tier.Starter,
-            CurrencyCode = "EUR"
-        });
-
-        // Demo password: demo1234
-        builder.Entity<User>().HasData(new User
-        {
-            Id = userId,
-            TenantId = tenantId,
-            Name = "Demo Mitarbeiter",
-            Email = "demo@baustellenbob.de",
-            PasswordHash = "$2a$11$HTyL8uikPhqN8TaOv73Bw.E4xxWRLfQsj.kPsVIaeUZyv351p0c8a",
-            Role = UserRole.Admin
-        });
-
-        builder.Entity<Project>().HasData(new Project
-        {
-            Id = Guid.Parse("00000000-0000-0000-0000-000000000100"),
-            TenantId = tenantId,
-            Name = "Neubau Einfamilienhaus Müller",
-            Address = "Musterstraße 12, 80331 München",
-            StartDate = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
-            Status = ProjectStatus.Active,
-            Description = "Elektroinstallation Neubau EFH"
-        });
-
-        // --- Second tenant for isolation testing ---
-        var tenant2Id = Guid.Parse("00000000-0000-0000-0000-000000000002");
-        var user2Id = Guid.Parse("00000000-0000-0000-0000-000000000020");
-
-        builder.Entity<Tenant>().HasData(new Tenant
-        {
-            Id = tenant2Id,
-            Name = "Sanitär Schmidt OHG",
-            CreatedAt = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc),
-            Tier = Tier.Starter,
-            CurrencyCode = "EUR"
-        });
-
-        // Demo password: demo1234
-        builder.Entity<User>().HasData(new User
-        {
-            Id = user2Id,
-            TenantId = tenant2Id,
-            Name = "Hans Schmidt",
-            Email = "hans@sanitaer-schmidt.de",
-            PasswordHash = "$2a$11$HTyL8uikPhqN8TaOv73Bw.E4xxWRLfQsj.kPsVIaeUZyv351p0c8a",
-            Role = UserRole.Admin
-        });
-
-        builder.Entity<Project>().HasData(new Project
-        {
-            Id = Guid.Parse("00000000-0000-0000-0000-000000000200"),
-            TenantId = tenant2Id,
-            Name = "Badsanierung Villa Berger",
-            Address = "Bergstraße 5, 70173 Stuttgart",
-            StartDate = new DateTime(2026, 2, 15, 0, 0, 0, DateTimeKind.Utc),
-            Status = ProjectStatus.Active,
-            Description = "Komplettumbau Badezimmer OG"
-        });
+     
     }
 }

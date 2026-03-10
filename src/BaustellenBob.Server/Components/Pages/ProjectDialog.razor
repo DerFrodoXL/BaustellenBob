@@ -26,6 +26,7 @@
         }
         <MudTextField @bind-Value="Model.Address" Label="Adresse" HelperText="Abweichende Baustellenadresse moglich" Class="mb-3" />
         <MudDatePicker @bind-Date="_startDate" Label="Startdatum" Class="mb-3" />
+        <MudDatePicker @bind-Date="_endDate" Label="Enddatum" HelperText="Optional" Class="mb-3" />
         <MudTextField @bind-Value="Model.Description" Label="Beschreibung" Lines="3" />
     </DialogContent>
     <DialogActions>
@@ -43,6 +44,7 @@
 
     private ProjectDto Model { get; set; } = new() { StartDate = DateTime.Today };
     private DateTime? _startDate = DateTime.Today;
+    private DateTime? _endDate;
     private List<CustomerDto> _customers = new();
     private Guid? _selectedCustomerId;
     private string _selectedCustomerAddress = string.Empty;
@@ -59,6 +61,7 @@
         {
             Model = Existing;
             _startDate = Existing.StartDate;
+            _endDate = Existing.EndDate;
         }
 
         _selectedCustomerId = Model.CustomerId;
@@ -96,6 +99,7 @@
         try
         {
             Model.StartDate = _startDate ?? DateTime.Today;
+            Model.EndDate = _endDate;
             if (IsEdit)
                 await ProjectService.UpdateAsync(Model);
             else

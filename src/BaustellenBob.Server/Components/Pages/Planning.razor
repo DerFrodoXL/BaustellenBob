@@ -26,28 +26,42 @@
 {
     <MudProgressCircular Indeterminate="true" />
 }
-else if (!_assignments.Any())
-{
-    <MudAlert Severity="Severity.Info">Keine Zuordnungen in dieser Woche.</MudAlert>
-}
 else
 {
+    @if (_staffingWarnings.Any())
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4">
+            <MudText Typo="Typo.subtitle2">Offene Einsatzplanung in dieser Woche</MudText>
+            @foreach (var warning in _staffingWarnings)
+            {
+                <div class="mt-1">
+                    @GetStaffingWarningText(warning)
+                </div>
+            }
+        </MudAlert>
+    }
+
+    @if (!_assignments.Any())
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">Keine Zuordnungen in dieser Woche.</MudAlert>
+    }
+
     @* Group by employee *@
-    @foreach (var group in _assignments.GroupBy(a => new { a.UserId, a.UserName }).OrderBy(g => g.Key.UserName))
+    @foreach (var group in AssignmentGroups)
     {
         <MudCard Class="mb-3">
             <MudCardHeader>
                 <MudAvatar Color="Color.Primary" Size="Size.Small">
-                    @if (!string.IsNullOrEmpty(group.First().UserProfilePicturePath))
+                    @if (!string.IsNullOrEmpty(group.UserProfilePicturePath))
                     {
-                        <MudImage Src="@($"/uploads/{group.First().UserProfilePicturePath}")" Alt="@group.Key.UserName" Style="width:100%;height:100%;object-fit:cover;" />
+                        <MudImage Src="@($"/uploads/{group.UserProfilePicturePath}")" Alt="@group.UserName" Style="width:100%;height:100%;object-fit:cover;" />
                     }
                     else
                     {
-                        @group.Key.UserName[0]
+                        @group.UserName[0]
                     }
                 </MudAvatar>
-                <MudText Typo="Typo.h6" Class="ml-2">@group.Key.UserName</MudText>
+                <MudText Typo="Typo.h6" Class="ml-2">@group.UserName</MudText>
             </MudCardHeader>
             <MudCardContent>
                 <MudSimpleTable Dense="true" Hover="true">
@@ -61,7 +75,7 @@ else
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var a in group.OrderBy(x => x.StartDate))
+                        @foreach (var a in group.Assignments.OrderBy(x => x.StartDate))
                         {
                             <tr>
                                 <td>
@@ -90,24 +104,21 @@ else
         <thead>
             <tr>
                 <th>Mitarbeiter</th>
-                @for (int d = 0; d < 7; d++)
+                @foreach (var day in WeekDays)
                 {
-                    var day = _weekStart.AddDays(d);
                     <th>@day.ToString("ddd dd.")</th>
                 }
             </tr>
         </thead>
         <tbody>
-            @foreach (var group in _assignments.GroupBy(a => new { a.UserId, a.UserName }).OrderBy(g => g.Key.UserName))
+            @foreach (var group in AssignmentGroups)
             {
                 <tr>
-                    <td><strong>@group.Key.UserName</strong></td>
-                    @for (int d = 0; d < 7; d++)
+                    <td><strong>@group.UserName</strong></td>
+                    @foreach (var day in WeekDays)
                     {
-                        var day = _weekStart.AddDays(d);
-                        var active = group.Where(a => a.StartDate <= day && a.EndDate >= day).ToList();
                         <td>
-                            @foreach (var a in active)
+                            @foreach (var a in GetAssignmentsForDay(group, day))
                             {
                                 <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ma-1">
                                     @a.ProjectName
@@ -123,12 +134,28 @@ else
 
 @code {
     [Inject] private IProjectAssignmentService AssignmentService { get; set; } = null!;
+    [Inject] private IProjectService ProjectService { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
     private List<ProjectAssignmentDto> _assignments = new();
+    private List<ProjectDto> _projects = new();
+    private List<ProjectStaffingWarning> _staffingWarnings = new();
     private DateTime _weekStart;
     private bool _loading;
+    private List<DateTime> WeekDays => Enumerable.Range(0, 7)
+        .Select(offset => _weekStart.AddDays(offset).Date)
+        .ToList();
+
+    private List<EmployeeAssignmentGroup> AssignmentGroups => _assignments
+        .GroupBy(a => new { a.UserId, a.UserName, a.UserProfilePicturePath })
+        .OrderBy(group => group.Key.UserName)
+        .Select(group => new EmployeeAssignmentGroup(
+            group.Key.UserId,
+            group.Key.UserName,
+            group.Key.UserProfilePicturePath,
+            group.ToList()))
+        .ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -159,8 +186,54 @@ else
     {
         _loading = true;
         _assignments = await AssignmentService.GetByWeekAsync(_weekStart);
+        _projects = await ProjectService.GetAllAsync();
+        _staffingWarnings = BuildStaffingWarnings();
         _loading = false;
     }
+
+    private List<ProjectStaffingWarning> BuildStaffingWarnings()
+    {
+        return _projects
+            .Where(project => project.Status == ProjectStatus.Active)
+            .Select(project => new ProjectStaffingWarning(
+                project.Id,
+                project.Name,
+                WeekDays.Where(day => IsProjectRelevantOnDay(project, day) && !HasAssignmentOnDay(project.Id, day)).ToList()))
+            .Where(warning => warning.Days.Count > 0)
+            .OrderBy(warning => warning.ProjectName)
+            .ToList();
+    }
+
+    private static bool IsProjectRelevantOnDay(ProjectDto project, DateTime day)
+    {
+        var projectStart = project.StartDate.Date;
+        var projectEnd = project.EndDate?.Date;
+
+        return projectStart <= day && (!projectEnd.HasValue || projectEnd.Value >= day);
+    }
+
+    private bool HasAssignmentOnDay(Guid projectId, DateTime day)
+    {
+        return _assignments.Any(assignment =>
+            assignment.ProjectId == projectId
+            && assignment.StartDate.Date <= day
+            && assignment.EndDate.Date >= day);
+    }
+
+    private static string GetStaffingWarningText(ProjectStaffingWarning warning)
+    {
+        return $"{warning.ProjectName}: nicht besetzt am {string.Join(", ", warning.Days.Select(day => day.ToString("ddd dd.MM.")))}";
+    }
+
+    private static List<ProjectAssignmentDto> GetAssignmentsForDay(EmployeeAssignmentGroup group, DateTime day)
+    {
+        return group.Assignments
+            .Where(assignment => assignment.StartDate.Date <= day && assignment.EndDate.Date >= day)
+            .ToList();
+    }
+
+    private sealed record EmployeeAssignmentGroup(Guid UserId, string UserName, string? UserProfilePicturePath, List<ProjectAssignmentDto> Assignments);
+    private sealed record ProjectStaffingWarning(Guid ProjectId, string ProjectName, List<DateTime> Days);
 
     private async Task OpenCreateDialog()
     {

@@ -24,7 +24,7 @@ public class AuthService : IAuthService
         if (user is null)
             return null;
 
-        // Accounts without a password hash cannot log in (prevents open-access demo accounts in production)
+        // Accounts without a password hash cannot log in (prevents open-access accounts in production)
         if (string.IsNullOrEmpty(user.PasswordHash))
             return null;
 

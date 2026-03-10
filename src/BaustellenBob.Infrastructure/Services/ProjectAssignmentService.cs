@@ -1,6 +1,7 @@
 using BaustellenBob.Application.DTOs;
 using BaustellenBob.Application.Interfaces;
 using BaustellenBob.Domain.Entities;
+using BaustellenBob.Domain.Enums;
 using BaustellenBob.Infrastructure.Data;
 using BaustellenBob.Shared.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -42,6 +43,7 @@ public class ProjectAssignmentService : IProjectAssignmentService
     {
         var weekEnd = weekStart.AddDays(7);
         return await _db.ProjectAssignments
+            .Where(a => a.Project.Status == ProjectStatus.Active)
             .Where(a => a.StartDate < weekEnd && a.EndDate >= weekStart)
             .OrderBy(a => a.StartDate)
             .Select(a => new ProjectAssignmentDto
