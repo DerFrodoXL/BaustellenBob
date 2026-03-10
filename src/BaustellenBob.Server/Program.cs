@@ -21,9 +21,11 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Host=localhost;Port=5432;Database=baustellenbob;Username=postgres;Password=postgres";
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseNpgsql(connectionString, npgsql =>
+        npgsql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null)));
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
-    options.UseNpgsql(connectionString), ServiceLifetime.Scoped);
+    options.UseNpgsql(connectionString, npgsql =>
+        npgsql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null)), ServiceLifetime.Scoped);
 
 // Cookie Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -113,10 +115,32 @@ builder.Services.AddRazorComponents()
 var app = builder.Build();
 
 // Auto-migrate on startup in all environments (including production).
+// Retry to handle transient errors such as the database still starting up.
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<AppDbContext>>();
+    var retries = 0;
+    const int maxRetries = 10;
+    while (true)
+    {
+        try
+        {
+            db.Database.Migrate();
+            break;
+        }
+        catch (Exception ex)
+        {
+            if (retries >= maxRetries)
+            {
+                logger.LogError(ex, "Database migration failed after {MaxRetries} attempts. Aborting.", maxRetries);
+                throw;
+            }
+            retries++;
+            logger.LogWarning(ex, "Database migration failed (attempt {Attempt}/{MaxRetries}). Retrying in 5 seconds...", retries, maxRetries);
+            await Task.Delay(TimeSpan.FromSeconds(5));
+        }
+    }
 }
 
 // Configure the HTTP request pipeline.
