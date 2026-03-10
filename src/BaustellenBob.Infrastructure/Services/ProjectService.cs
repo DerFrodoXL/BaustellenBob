@@ -11,12 +11,14 @@ public class ProjectService : IProjectService
 {
     private readonly AppDbContext _db;
     private readonly Shared.Interfaces.ITenantProvider _tenantProvider;
+    private readonly Shared.Interfaces.ICurrentUserProvider _currentUser;
     private readonly ITierLimitService _tierLimits;
 
-    public ProjectService(AppDbContext db, Shared.Interfaces.ITenantProvider tenantProvider, ITierLimitService tierLimits)
+    public ProjectService(AppDbContext db, Shared.Interfaces.ITenantProvider tenantProvider, Shared.Interfaces.ICurrentUserProvider currentUser, ITierLimitService tierLimits)
     {
         _db = db;
         _tenantProvider = tenantProvider;
+        _currentUser = currentUser;
         _tierLimits = tierLimits;
     }
 
@@ -72,6 +74,9 @@ public class ProjectService : IProjectService
 
     public async Task ArchiveAsync(Guid id)
     {
+        if (!string.Equals(_currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("Nur Admins dürfen Baustellen archivieren.");
+
         var entity = await _db.Projects.FindAsync(id)
             ?? throw new InvalidOperationException("Project not found.");
         entity.Status = ProjectStatus.Archived;

@@ -7,7 +7,7 @@
 
 <MudGrid Class="mb-4">
     <MudItem xs="12" sm="5">
-        <MudTextField T="string" @bind-Value="_search" Placeholder="Suche nach Name, Kunde, Adresse…"
+        <MudTextField T="string" @bind-Value="_search" Placeholder="Suche nach Name, Kunde, Adresse..."
                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                       Immediate="true" DebounceInterval="300" TextChanged="OnSearchChanged" />
     </MudItem>
@@ -59,8 +59,11 @@ else
                 </MudTd>
                 <MudTd>
                     <MudIconButton Icon="@Icons.Material.Filled.Visibility" Href="@($"/projects/{context.Id}")" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Archive" Color="Color.Warning"
-                                   OnClick="@(() => Archive(context.Id))" />
+                    <AuthorizeView Roles="Admin" Context="authState">
+                        <MudIconButton Icon="@Icons.Material.Filled.Archive" Color="Color.Warning"
+                                       Disabled="@(context.Status == ProjectStatus.Archived)"
+                                       OnClick="@(() => Archive(context))" />
+                    </AuthorizeView>
                 </MudTd>
             </RowTemplate>
         </MudTable>
@@ -125,9 +128,20 @@ else
     private void OnSearchChanged(string value) => _search = value;
     private void OnStatusFilterChanged(ProjectStatus? value) => _statusFilter = value;
 
-    private async Task Archive(Guid id)
+    private async Task Archive(ProjectDto project)
     {
-        await ProjectService.ArchiveAsync(id);
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
+            "Baustelle archivieren",
+            $"Baustelle '{project.Name}' wirklich archivieren?\n\n" +
+            "Danach ist sie nicht mehr aktiv nutzbar und diese Aktion kann nicht rückgängig gemacht werden.\n" +
+            "Für das Tier-Limit zahlen nur aktive Baustellen.",
+            yesText: "Endgültig archivieren",
+            cancelText: "Abbrechen");
+
+        if (confirmed != true)
+            return;
+
+        await ProjectService.ArchiveAsync(project.Id);
         Snackbar.Add("Baustelle archiviert", Severity.Success);
         await LoadData();
     }
