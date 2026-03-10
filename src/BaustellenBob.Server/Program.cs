@@ -22,6 +22,8 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? "Host=localhost;Port=5432;Database=baustellenbob;Username=postgres;Password=postgres";
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
+    options.UseNpgsql(connectionString), ServiceLifetime.Scoped);
 
 // Cookie Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -94,7 +96,7 @@ builder.Services.AddScoped<IProjectReportService>(sp =>
     new ProjectReportService(sp.GetRequiredService<AppDbContext>()));
 builder.Services.AddScoped<ITenantService>(sp =>
     new TenantService(
-        sp.GetRequiredService<AppDbContext>(),
+        sp.GetRequiredService<IDbContextFactory<AppDbContext>>(),
         sp.GetRequiredService<ITenantProvider>()));
 builder.Services.AddScoped<IStripeService, StripeService>();
 
