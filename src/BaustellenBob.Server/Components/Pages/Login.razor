@@ -21,11 +21,12 @@
             }
             <form method="post"
                 action="/api/auth/login"
-                onsubmit="const btn=this.querySelector('button[type=submit]'); if(btn){btn.disabled=true; const idle=btn.querySelector('[data-idle]'); const loading=btn.querySelector('[data-loading]'); if(idle){idle.style.display='none';} if(loading){loading.style.display='inline-flex';}}">
+                onsubmit="const email=document.getElementById('email'); const password=document.getElementById('password'); const hiddenEmail=document.getElementById('email_hidden'); const hiddenPassword=document.getElementById('password_hidden'); if(hiddenEmail&&email){hiddenEmail.value=email.value;} if(hiddenPassword&&password){hiddenPassword.value=password.value;} const btn=this.querySelector('button[type=submit]'); if(btn){btn.disabled=true; const idle=btn.querySelector('[data-idle]'); const loading=btn.querySelector('[data-loading]'); if(idle){idle.style.display='none';} if(loading){loading.style.display='inline-flex';}}">
                 <AntiforgeryToken />
+                <input type="hidden" id="email_hidden" name="email" />
+                <input type="hidden" id="password_hidden" name="password" />
                 <MudTextField T="string"
                               Label="E-Mail"
-                              Name="email"
                               InputId="email"
                               InputType="InputType.Email"
                               Required="true"
@@ -35,7 +36,6 @@
                               Class="mb-3" />
                 <MudTextField T="string"
                               Label="Passwort"
-                              Name="password"
                               InputId="password"
                               InputType="InputType.Password"
                               Required="true"

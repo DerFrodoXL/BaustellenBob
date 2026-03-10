@@ -19,11 +19,15 @@
             {
                 <MudAlert Severity="Severity.Error" Class="mb-3">@_error</MudAlert>
             }
-            <form method="post" action="/api/auth/register">
+                        <form method="post" action="/api/auth/register"
+                                    onsubmit="const companyName=document.getElementById('companyName'); const adminName=document.getElementById('adminName'); const email=document.getElementById('email'); const password=document.getElementById('password'); const hiddenCompanyName=document.getElementById('companyName_hidden'); const hiddenAdminName=document.getElementById('adminName_hidden'); const hiddenEmail=document.getElementById('email_hidden'); const hiddenPassword=document.getElementById('password_hidden'); if(hiddenCompanyName&&companyName){hiddenCompanyName.value=companyName.value;} if(hiddenAdminName&&adminName){hiddenAdminName.value=adminName.value;} if(hiddenEmail&&email){hiddenEmail.value=email.value;} if(hiddenPassword&&password){hiddenPassword.value=password.value;}">
                 <AntiforgeryToken />
+                                <input type="hidden" id="companyName_hidden" name="companyName" />
+                                <input type="hidden" id="adminName_hidden" name="adminName" />
+                                <input type="hidden" id="email_hidden" name="email" />
+                                <input type="hidden" id="password_hidden" name="password" />
                 <MudTextField T="string"
                               Label="Firmenname"
-                              Name="companyName"
                               InputId="companyName"
                               Required="true"
                               Variant="Variant.Outlined"
@@ -32,7 +36,6 @@
                               Class="mb-3" />
                 <MudTextField T="string"
                               Label="Ihr Name"
-                              Name="adminName"
                               InputId="adminName"
                               Required="true"
                               Variant="Variant.Outlined"
@@ -41,7 +44,6 @@
                               Class="mb-3" />
                 <MudTextField T="string"
                               Label="E-Mail"
-                              Name="email"
                               InputId="email"
                               InputType="InputType.Email"
                               Required="true"
@@ -51,7 +53,6 @@
                               Class="mb-3" />
                 <MudTextField T="string"
                               Label="Passwort"
-                              Name="password"
                               InputId="password"
                               InputType="InputType.Password"
                               Required="true"
@@ -59,7 +60,7 @@
                               FullWidth="true"
                               Margin="Margin.Dense"
                               Class="mb-3"
-                              MinLength="6" />
+                              HelperText="Mindestens 6 Zeichen" />
                 <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
                            Color="Color.Primary" FullWidth="true" Class="mt-2">
                     Kostenlos registrieren

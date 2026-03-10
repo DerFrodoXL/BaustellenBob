@@ -15,7 +15,7 @@
     <MudAlert Severity="Severity.Warning" Class="mb-3">@_canceledMessage</MudAlert>
 }
 
-<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true">
     @* ──── Tab 1: Konto ──── *@
     <MudTabPanel Text="Konto" Icon="@Icons.Material.Filled.Business">
         @if (_limits is null || _usage is null)
