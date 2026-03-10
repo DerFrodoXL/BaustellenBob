@@ -13,7 +13,7 @@ else
 {
     <MudGrid>
         <MudItem xs="6" sm="3">
-            <MudCard>
+            <MudCard Style="cursor:pointer;" @onclick='() => GoTo("/projects")'>
                 <MudCardContent>
                     <MudText Typo="Typo.h3" Align="Align.Center">@_dashboard.ActiveProjects</MudText>
                     <MudText Typo="Typo.subtitle1" Align="Align.Center">Aktive Baustellen</MudText>
@@ -24,19 +24,25 @@ else
             </MudCard>
         </MudItem>
         <MudItem xs="6" sm="3">
-            <MudCard>
+            <MudCard Style="cursor:pointer;" @onclick='() => GoTo("/projects")'>
                 <MudCardContent>
                     <MudText Typo="Typo.h3" Align="Align.Center">@_dashboard.TotalPhotos</MudText>
                     <MudText Typo="Typo.subtitle1" Align="Align.Center">Fotos gesamt</MudText>
                 </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="/projects" Variant="Variant.Text" Color="Color.Primary">Zu Baustellen</MudButton>
+                </MudCardActions>
             </MudCard>
         </MudItem>
         <MudItem xs="6" sm="3">
-            <MudCard>
+            <MudCard Style="cursor:pointer;" @onclick='() => GoTo("/quick-report")'>
                 <MudCardContent>
                     <MudText Typo="Typo.h3" Align="Align.Center">@_dashboard.TotalReports</MudText>
                     <MudText Typo="Typo.subtitle1" Align="Align.Center">Rapporte gesamt</MudText>
                 </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="/quick-report" Variant="Variant.Text" Color="Color.Primary">Erfassen</MudButton>
+                </MudCardActions>
             </MudCard>
         </MudItem>
         <MudItem xs="6" sm="3">
@@ -56,12 +62,14 @@ else
             <MudList T="string" Dense="true">
                 @foreach (var a in _dashboard.RecentActivities)
                 {
-                    <MudListItem Icon="@GetActivityIcon(a.Icon)">
+                    <MudListItem Icon="@GetActivityIcon(a.Icon)"
+                                 Style="cursor:pointer;"
+                                 OnClick="() => OpenActivity(a)">
                         <div class="d-flex flex-column">
                             <MudText Typo="Typo.body2">@a.Text</MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                 @a.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm") —
-                                <MudLink Href="@($"/projects/{a.ProjectId}")">@a.ProjectName</MudLink>
+                                <MudLink Href="@GetActivityHref(a)">@a.ProjectName</MudLink>
                             </MudText>
                         </div>
                     </MudListItem>
@@ -185,6 +193,7 @@ else
 
 @code {
     [Inject] private IDashboardService DashboardService { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
 
     private DashboardDto? _dashboard;
 
@@ -199,4 +208,36 @@ else
         "Assignment" => Icons.Material.Filled.Assignment,
         _ => Icons.Material.Filled.Info
     };
+
+    private void GoTo(string href)
+    {
+        Nav.NavigateTo(href);
+    }
+
+    private void OpenActivity(RecentActivityDto activity)
+    {
+        Nav.NavigateTo(GetActivityHref(activity));
+    }
+
+    private static string GetActivityHref(RecentActivityDto activity)
+    {
+        if (activity.ProjectId.HasValue)
+        {
+            var tab = activity.Icon switch
+            {
+                "PhotoCamera" => "photos",
+                "Assignment" => "reports",
+                _ => "overview"
+            };
+
+            return $"/projects/{activity.ProjectId.Value}?tab={tab}";
+        }
+
+        return activity.Icon switch
+        {
+            "Assignment" => "/quick-report",
+            "PhotoCamera" => "/projects",
+            _ => "/"
+        };
+    }
 }

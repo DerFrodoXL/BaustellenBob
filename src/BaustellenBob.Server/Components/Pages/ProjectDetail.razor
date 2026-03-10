@@ -12,7 +12,7 @@ else
     <MudText Typo="Typo.h4" Class="mb-2">@_project.Name</MudText>
     <MudText Typo="Typo.subtitle1" Class="mb-4 mud-text-secondary">@_project.CustomerName — @_project.Address</MudText>
 
-    <MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true" Class="mb-4">
+    <MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true" Class="mb-4" @bind-ActivePanelIndex="_activeTabIndex">
         <MudTabPanel Text="Übersicht" Icon="@Icons.Material.Filled.Info">
             <div class="pa-4">
                 <MudGrid>
@@ -239,6 +239,7 @@ else
 
 @code {
     [Parameter] public Guid Id { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "tab")] public string? Tab { get; set; }
     [Inject] private IProjectService ProjectService { get; set; } = null!;
     [Inject] private IPhotoService PhotoService { get; set; } = null!;
     [Inject] private IWorkReportService WorkReportService { get; set; } = null!;
@@ -254,6 +255,7 @@ else
     private List<MaterialEntryDto> _materials = new();
     private List<ProjectAssignmentDto> _assignments = new();
     private bool _canExportPdf;
+    private int _activeTabIndex;
 
     // Photo upload state
     private IBrowserFile? _selectedFile;
@@ -262,9 +264,26 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        _activeTabIndex = GetTabIndex(Tab);
         await LoadAll();
         _canExportPdf = await TierLimitService.CanExportPdfAsync();
     }
+
+    protected override Task OnParametersSetAsync()
+    {
+        _activeTabIndex = GetTabIndex(Tab);
+        return Task.CompletedTask;
+    }
+
+    private static int GetTabIndex(string? tab) => (tab ?? string.Empty).ToLowerInvariant() switch
+    {
+        "overview" => 0,
+        "photos" => 1,
+        "reports" => 2,
+        "materials" => 3,
+        "planning" => 4,
+        _ => 0
+    };
 
     private async Task LoadAll()
     {
