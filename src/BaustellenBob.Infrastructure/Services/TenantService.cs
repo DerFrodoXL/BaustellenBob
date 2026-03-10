@@ -8,18 +8,19 @@ namespace BaustellenBob.Infrastructure.Services;
 
 public class TenantService : ITenantService
 {
-    private readonly AppDbContext _db;
+    private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly ITenantProvider _tenantProvider;
 
-    public TenantService(AppDbContext db, ITenantProvider tenantProvider)
+    public TenantService(IDbContextFactory<AppDbContext> dbFactory, ITenantProvider tenantProvider)
     {
-        _db = db;
+        _dbFactory = dbFactory;
         _tenantProvider = tenantProvider;
     }
 
     public async Task<string?> GetLogoPathAsync()
     {
-        var tenant = await _db.Tenants
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        var tenant = await db.Tenants
             .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == _tenantProvider.TenantId);
         return tenant?.LogoPath;
@@ -27,7 +28,8 @@ public class TenantService : ITenantService
 
     public async Task<string> GetCurrencyCodeAsync()
     {
-        var tenant = await _db.Tenants
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        var tenant = await db.Tenants
             .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == _tenantProvider.TenantId);
 
@@ -38,11 +40,12 @@ public class TenantService : ITenantService
     {
         var normalized = NormalizeCurrencyCode(currencyCode);
 
-        var tenant = await _db.Tenants.FindAsync(_tenantProvider.TenantId)
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        var tenant = await db.Tenants.FindAsync(_tenantProvider.TenantId)
             ?? throw new InvalidOperationException("Tenant nicht gefunden.");
 
         tenant.CurrencyCode = normalized;
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     public async Task<string> UploadLogoAsync(string fileName, Stream stream)
@@ -54,12 +57,13 @@ public class TenantService : ITenantService
 
         var relativePath = $"{tenantId}/logo/{safeFileName}";
 
-        var tenant = await _db.Tenants.FindAsync(tenantId)
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        var tenant = await db.Tenants.FindAsync(tenantId)
             ?? throw new InvalidOperationException("Tenant nicht gefunden.");
         tenant.LogoPath = relativePath;
         tenant.LogoData = bytes;
         tenant.LogoContentType = "image/png";
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         return relativePath;
     }
