@@ -4,6 +4,8 @@ namespace BaustellenBob.Domain.Entities;
 
 public class Tenant
 {
+    public const string DefaultWorkingDays = "1,2,3,4,5";
+
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
@@ -16,6 +18,7 @@ public class Tenant
     public string? StripeCustomerId { get; set; }
     public string? StripeSubscriptionId { get; set; }
     public string CurrencyCode { get; set; } = "EUR";
+    public string WorkingDays { get; set; } = DefaultWorkingDays;
 
     public ICollection<User> Users { get; set; } = new List<User>();
     public ICollection<Project> Projects { get; set; } = new List<Project>();

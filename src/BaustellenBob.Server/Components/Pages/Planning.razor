@@ -4,6 +4,7 @@
 <PageTitle>Planung</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-4">Mitarbeiterplanung</MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">Berücksichtigte Arbeitstage: @WorkingDaysSummary</MudText>
 
 <MudGrid Class="mb-4">
     <MudItem xs="12" sm="6" Class="d-flex align-center gap-2">
@@ -135,6 +136,7 @@ else
 @code {
     [Inject] private IProjectAssignmentService AssignmentService { get; set; } = null!;
     [Inject] private IProjectService ProjectService { get; set; } = null!;
+    [Inject] private ITenantService TenantService { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
@@ -143,9 +145,34 @@ else
     private List<ProjectStaffingWarning> _staffingWarnings = new();
     private DateTime _weekStart;
     private bool _loading;
+    private HashSet<DayOfWeek> _workingDays = new(
+        new[]
+        {
+            DayOfWeek.Monday,
+            DayOfWeek.Tuesday,
+            DayOfWeek.Wednesday,
+            DayOfWeek.Thursday,
+            DayOfWeek.Friday
+        });
     private List<DateTime> WeekDays => Enumerable.Range(0, 7)
         .Select(offset => _weekStart.AddDays(offset).Date)
+        .Where(day => _workingDays.Contains(day.DayOfWeek))
         .ToList();
+    private string WorkingDaysSummary => _workingDayLabels.Any(option => _workingDays.Contains(option.Day))
+        ? string.Join(", ", _workingDayLabels
+            .Where(option => _workingDays.Contains(option.Day))
+            .Select(option => option.Label))
+        : "keine";
+    private static readonly (DayOfWeek Day, string Label)[] _workingDayLabels =
+    [
+        (DayOfWeek.Monday, "Mo"),
+        (DayOfWeek.Tuesday, "Di"),
+        (DayOfWeek.Wednesday, "Mi"),
+        (DayOfWeek.Thursday, "Do"),
+        (DayOfWeek.Friday, "Fr"),
+        (DayOfWeek.Saturday, "Sa"),
+        (DayOfWeek.Sunday, "So")
+    ];
 
     private List<EmployeeAssignmentGroup> AssignmentGroups => _assignments
         .GroupBy(a => new { a.UserId, a.UserName, a.UserProfilePicturePath })
@@ -185,6 +212,7 @@ else
     private async Task LoadWeek()
     {
         _loading = true;
+        _workingDays = (await TenantService.GetWorkingDaysAsync()).ToHashSet();
         _assignments = await AssignmentService.GetByWeekAsync(_weekStart);
         _projects = await ProjectService.GetAllAsync();
         _staffingWarnings = BuildStaffingWarnings();

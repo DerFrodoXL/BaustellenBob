@@ -119,6 +119,34 @@
                     </MudCard>
                 </MudItem>
 
+                <MudItem xs="12" md="6">
+                    <MudCard>
+                        <MudCardHeader>
+                            <MudText Typo="Typo.h6">Arbeitstage</MudText>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary mb-2">
+                                Diese Tage werden in der Einsatzplanung berücksichtigt. Standard ist Montag bis Freitag.
+                            </MudText>
+                            <MudGrid>
+                                @foreach (var option in _workingDayOptions)
+                                {
+                                    <MudItem xs="6" sm="4">
+                                        <MudCheckBox T="bool"
+                                                     Label="@option.Label"
+                                                     Value="@_workingDays.Contains(option.Day)"
+                                                     ValueChanged="@(value => OnWorkingDayToggled(option.Day, value))" />
+                                    </MudItem>
+                                }
+                            </MudGrid>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2"
+                                       OnClick="SaveWorkingDays" Disabled="_savingWorkingDays || !_workingDaysDirty">
+                                @(_savingWorkingDays ? "Speichern..." : "Speichern")
+                            </MudButton>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
                 @* Usage *@
                 <MudItem xs="12">
                     <MudCard>
@@ -262,7 +290,20 @@
     private string _currencyCode = "EUR";
     private bool _currencyDirty;
     private bool _savingCurrency;
+    private HashSet<DayOfWeek> _workingDays = new();
+    private bool _workingDaysDirty;
+    private bool _savingWorkingDays;
     private static readonly string[] _currencies = ["EUR", "CHF", "USD", "GBP"];
+    private static readonly WorkingDayOption[] _workingDayOptions =
+    [
+        new(DayOfWeek.Monday, "Montag"),
+        new(DayOfWeek.Tuesday, "Dienstag"),
+        new(DayOfWeek.Wednesday, "Mittwoch"),
+        new(DayOfWeek.Thursday, "Donnerstag"),
+        new(DayOfWeek.Friday, "Freitag"),
+        new(DayOfWeek.Saturday, "Samstag"),
+        new(DayOfWeek.Sunday, "Sonntag")
+    ];
 
     // Stripe state
     private SubscriptionInfo? _stripeInfo;
@@ -294,6 +335,7 @@
         _usage = await TierLimitService.GetUsageAsync();
         _logoPath = await TenantService.GetLogoPathAsync();
         _currencyCode = await TenantService.GetCurrencyCodeAsync();
+        _workingDays = (await TenantService.GetWorkingDaysAsync()).ToHashSet();
 
         // Load Stripe data
         try
@@ -330,6 +372,36 @@
         finally
         {
             _savingCurrency = false;
+        }
+    }
+
+    private void OnWorkingDayToggled(DayOfWeek day, bool enabled)
+    {
+        if (enabled)
+            _workingDays.Add(day);
+        else
+            _workingDays.Remove(day);
+
+        _workingDaysDirty = true;
+    }
+
+    private async Task SaveWorkingDays()
+    {
+        _savingWorkingDays = true;
+        try
+        {
+            await TenantService.SetWorkingDaysAsync(_workingDays);
+            _workingDays = (await TenantService.GetWorkingDaysAsync()).ToHashSet();
+            _workingDaysDirty = false;
+            Snackbar.Add("Arbeitstage gespeichert.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Fehler beim Speichern der Arbeitstage: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _savingWorkingDays = false;
         }
     }
 
@@ -393,4 +465,5 @@
     };
 
     private record PlanDisplay(string Name, string Price, BaustellenBob.Domain.Enums.Tier Tier, string Baustellen, string Mitarbeiter, string Fotos, bool PdfExport);
+    private record WorkingDayOption(DayOfWeek Day, string Label);
 }

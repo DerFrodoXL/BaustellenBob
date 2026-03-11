@@ -6,4 +6,6 @@ public interface ITenantService
     Task<string> UploadLogoAsync(string fileName, Stream stream);
     Task<string> GetCurrencyCodeAsync();
     Task SetCurrencyCodeAsync(string currencyCode);
+    Task<IReadOnlyCollection<DayOfWeek>> GetWorkingDaysAsync();
+    Task SetWorkingDaysAsync(IEnumerable<DayOfWeek> workingDays);
 }

@@ -40,6 +40,7 @@ public class AppDbContext : DbContext
             e.Property(t => t.StripeCustomerId).HasMaxLength(100);
             e.Property(t => t.StripeSubscriptionId).HasMaxLength(100);
             e.Property(t => t.CurrencyCode).HasMaxLength(3).IsRequired().HasDefaultValue("EUR");
+            e.Property(t => t.WorkingDays).HasMaxLength(20).IsRequired().HasDefaultValue(Tenant.DefaultWorkingDays);
         });
 
         // User
