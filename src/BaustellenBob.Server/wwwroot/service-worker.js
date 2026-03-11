@@ -4,6 +4,8 @@ const STATIC_ASSETS = [
     '/',
     '/manifest.webmanifest',
     '/structra-logo.png',
+    '/pwa-icon-192.png',
+    '/pwa-icon-512.png',
     '/_content/MudBlazor/MudBlazor.min.css',
     '/_content/MudBlazor/MudBlazor.min.js',
     '/app.css',
