@@ -392,6 +392,10 @@ api.MapPost("/projects/{id:guid}/reports", async (Guid id, BaustellenBob.Applica
     }
 });
 
+// Health check — used by uptime monitors (e.g. UptimeRobot, Better Stack)
+// to keep the Railway service warm and prevent cold-start delays.
+app.MapGet("/health", () => Results.Ok("ok")).AllowAnonymous();
+
 // ---- Stripe Checkout ----
 app.MapPost("/api/stripe/checkout", async (HttpContext ctx, IStripeService stripeService) =>
 {
