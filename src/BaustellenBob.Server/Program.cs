@@ -116,6 +116,9 @@ var app = builder.Build();
 
 // Auto-migrate on startup in all environments (including production).
 // Retry to handle transient errors such as the database still starting up.
+// The execution strategy is invoked explicitly so that the Npgsql retry-on-failure
+// policy (configured above) also covers the initial connection attempt
+// (e.g. Postgres error 57P03 "the database system is starting up").
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -126,7 +129,8 @@ using (var scope = app.Services.CreateScope())
     {
         try
         {
-            db.Database.Migrate();
+            var strategy = db.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () => await db.Database.MigrateAsync());
             break;
         }
         catch (Exception ex)
