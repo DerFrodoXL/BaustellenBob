@@ -47,8 +47,27 @@ else
             <div class="pa-4">
                 <MudText Typo="Typo.h6" Class="mb-3">Foto hochladen</MudText>
                 <MudGrid>
-                    <MudItem xs="12" sm="6">
-                        <InputFile OnChange="OnPhotoSelected" accept="image/*" capture="environment" />
+                    <MudItem xs="12">
+                        <div class="d-flex align-center gap-2 flex-wrap mb-2">
+                            <InputFile id="photoCamera" OnChange="OnPhotoSelected" accept="image/*" capture="environment"
+                                       style="display:none;" />
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.PhotoCamera"
+                                       OnClick="@(() => JSRuntime.InvokeVoidAsync("eval", "document.getElementById('photoCamera').click()"))">
+                                Foto aufnehmen
+                            </MudButton>
+                            <InputFile id="photoGallery" OnChange="OnPhotoSelected" accept="image/*"
+                                       style="display:none;" />
+                            <MudButton Variant="Variant.Outlined"
+                                       StartIcon="@Icons.Material.Filled.Image"
+                                       OnClick="@(() => JSRuntime.InvokeVoidAsync("eval", "document.getElementById('photoGallery').click()"))">
+                                Aus Galerie wählen
+                            </MudButton>
+                        </div>
+                        @if (_selectedFile is not null)
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary mb-2">Ausgewählt: @_selectedFile.Name</MudText>
+                        }
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudTextField T="string" @bind-Value="_photoDescription" Label="Beschreibung" />
@@ -248,6 +267,7 @@ else
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private ITierLimitService TierLimitService { get; set; } = null!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
 
     private ProjectDto? _project;
     private List<PhotoDto> _photos = new();
