@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
+using Npgsql;
 using System.Security.Claims;
 using QuestPDF.Infrastructure;
 
@@ -20,6 +21,33 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 // Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Host=localhost;Port=5432;Database=baustellenbob;Username=postgres;Password=postgres";
+
+// On Railway (and similar platforms) the internal private network uses IPv6, but the
+// PostgreSQL service may only listen on IPv4, causing "Connection refused" errors.
+// Pre-resolve the hostname to its IPv4 address so all Npgsql connections use IPv4.
+var csb = new NpgsqlConnectionStringBuilder(connectionString);
+if (!string.IsNullOrEmpty(csb.Host) && !System.Net.IPAddress.TryParse(csb.Host, out _))
+{
+    try
+    {
+        using var dnsCts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var ipv4Addresses = await System.Net.Dns.GetHostAddressesAsync(
+            csb.Host, System.Net.Sockets.AddressFamily.InterNetwork, dnsCts.Token);
+        if (ipv4Addresses.Length > 0)
+        {
+            csb.Host = ipv4Addresses[0].ToString();
+            connectionString = csb.ConnectionString;
+        }
+    }
+    catch (Exception ex)
+    {
+        // Log to console so the deployment logs capture this; the app continues
+        // with the original connection string and lets Npgsql attempt the connection.
+        Console.Error.WriteLine(
+            $"[Warning] IPv4 DNS resolution for '{csb.Host}' failed ({ex.Message}). Proceeding with original connection string.");
+    }
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString, npgsql =>
         npgsql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null)));
