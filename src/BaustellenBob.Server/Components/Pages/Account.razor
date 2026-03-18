@@ -20,7 +20,9 @@
     <MudTabPanel Text="Konto" Icon="@Icons.Material.Filled.Business">
         @if (_limits is null || _usage is null)
         {
-            <MudProgressCircular Indeterminate="true" />
+            <div class="loading-center">
+                <MudProgressCircular Indeterminate="true" />
+            </div>
         }
         else
         {

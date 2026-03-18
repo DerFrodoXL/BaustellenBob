@@ -22,6 +22,22 @@
 
 <body>
     <Routes @rendermode="InteractiveServer" />
+
+    <div id="components-reconnect-modal">
+        <div class="reconnect-dialog">
+            <div class="reconnect-spinner"></div>
+            <p class="reconnect-message reconnect-show">Verbindung wird wiederhergestellt&nbsp;…</p>
+            <p class="reconnect-message reconnect-failed">
+                Verbindung fehlgeschlagen.
+                <button class="reconnect-link" onclick="window.Blazor.reconnect()">Erneut versuchen</button>
+            </p>
+            <p class="reconnect-message reconnect-rejected">
+                Sitzung abgelaufen.
+                <button class="reconnect-link" onclick="location.reload()">Seite neu laden</button>
+            </p>
+        </div>
+    </div>
+
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="_framework/blazor.web.js"></script>
     <script>
