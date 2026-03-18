@@ -30,7 +30,9 @@
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <div class="loading-center">
+        <MudProgressCircular Indeterminate="true" />
+    </div>
 }
 else if (!FilteredProjects.Any())
 {
