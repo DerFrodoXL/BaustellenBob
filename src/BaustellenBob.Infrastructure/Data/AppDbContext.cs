@@ -1,11 +1,12 @@
 using BaustellenBob.Domain.Entities;
 using BaustellenBob.Domain.Enums;
 using BaustellenBob.Shared.Interfaces;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace BaustellenBob.Infrastructure.Data;
 
-public class AppDbContext : DbContext
+public class AppDbContext : DbContext, IDataProtectionKeyContext
 {
     private readonly ITenantProvider _tenantProvider;
 
@@ -26,6 +27,7 @@ public class AppDbContext : DbContext
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

@@ -7,6 +7,7 @@ using BaustellenBob.Server.Services;
 using BaustellenBob.Shared.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using Npgsql;
@@ -54,6 +55,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseNpgsql(connectionString, npgsql =>
         npgsql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null)), ServiceLifetime.Scoped);
+
+// Persist Data Protection keys to PostgreSQL so that auth cookies survive container restarts.
+builder.Services.AddDataProtection()
+    .PersistKeysToDbContext<AppDbContext>()
+    .SetApplicationName("BaustellenBob");
 
 // Cookie Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -233,7 +239,8 @@ app.MapPost("/api/auth/login", async (HttpContext ctx, IAuthService authService)
     var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
     var principal = new ClaimsPrincipal(identity);
 
-    await ctx.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+    await ctx.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
+        new AuthenticationProperties { IsPersistent = true });
     ctx.Response.Redirect("/");
 });
 
@@ -280,7 +287,8 @@ app.MapPost("/api/auth/register", async (HttpContext ctx, IRegistrationService r
     var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
     var principal = new ClaimsPrincipal(identity);
 
-    await ctx.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+    await ctx.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
+        new AuthenticationProperties { IsPersistent = true });
     ctx.Response.Redirect("/");
 });
 
